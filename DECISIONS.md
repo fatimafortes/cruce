@@ -160,4 +160,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-Finish F6: manual test with the second Google account as worker (`docs/TEST_LOG.md`, F6). Then F7: the worker-owned proof record (`/proof`, PDF, share link, revoke, public `/p/[token]`).
+F6 is done (production, two accounts). Next: F7: the worker-owned proof record (`/proof`, PDF, share link, revoke, public `/p/[token]`).

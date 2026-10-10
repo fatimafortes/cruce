@@ -203,4 +203,16 @@ The F3 RLS test still passes 36/36 with the new trigger in place. No rows left. 
 
 **Local server (production build, signed out):** `/review` → 307 to sign-in; `POST /api/reviews` → 401 "Tu sesión terminó. Vuelve a entrar con Google."; `GET /api/reviews` → 405.
 
-**Manual run (owner as reviewer, second Google account as worker):** _pending_.
+**Manual run on production (https://cruce-wheat.vercel.app), owner as reviewer, second Google account as worker, 2026-10-10:**
+
+| Step | Result |
+| --- | --- |
+| Worker account → `/review` shows "No autorizado" (**F6 done-when, part 1**) | ✅ |
+| Reviewer → `/review` lists both of the worker's samples, no name or email | ✅ |
+| Weak sample: "Todavía no" without a note → asked for a note | ✅ as reported. The report also contained a leftover alternative ("[or: didn't check this one]"); the same rule is covered by unit tests (blank and 9 characters rejected) |
+| Weak sample: "Todavía no" with a note → saved; button changes to "Actualizar decisión" | ✅ |
+| Good sample: "Sí" without a note → saved | ✅ |
+| Worker `/sample` (latest = weak sample) → "Nota de la persona revisora": "Todavía no se ve cómo explicas el cambio." + the note, no reviewer name (**F6 done-when, part 2**) | ✅ |
+| Worker states: "Entregable existe"; "Revisa los números marcados" (correct: the weak follow-up lacked 250 / 150 / Nov 19); "Explicó el cambio · todavía no" in neutral style | ✅ |
+
+**Status: ✅ F6 done** on production. The good sample's "Explicó el cambio" ✓ isn't visible to the worker yet, because `/sample` shows only the latest attempt; the `/proof` page in F7 will show it.
