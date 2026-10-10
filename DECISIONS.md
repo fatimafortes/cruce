@@ -122,4 +122,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-Finish F4: manual run on localhost and on Vercel (`docs/TEST_LOG.md`, F4). Then F5: Gemini suggestion (server only, labeled, never decides) and the 5-attempts-per-day limit. Before F5: the new Gemini key in `.env.local`, then in Vercel (Production, Sensitive).
+F4 is done (localhost and production) and Bug 2 is resolved. Next: F5: Gemini suggestion (server only, labeled, never decides) and the 5-attempts-per-day limit. Before F5: the new Gemini key in `.env.local`, then in Vercel (Production, Sensitive).

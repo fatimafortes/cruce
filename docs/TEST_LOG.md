@@ -113,7 +113,10 @@ Mutation check: adding 500 to the allowed quantities makes 2 tests fail (test pl
 | Task 2, correct answer → 250 ✓, 150 ✓, Nov 19 ✓, "Listo, tu muestra quedó guardada" | ✅ |
 | Task 2, wrong answer → "No encontramos…" for 250, 150 and Nov 19, plus "Revisa: 500 no aparece en la orden.", neutral style | ✅ |
 | New sample with "500" instead of "400" → neutral "Revisa los números marcados" (test plan #5) | ✅ (this run also surfaced Bug 2) |
-| Same flow on https://cruce-wheat.vercel.app | _pending_ |
+| Production (https://cruce-wheat.vercel.app, new sample, signed in): correct email → 6 ✓; task 2 → 250 ✓, 150 ✓, Nov 19 ✓, "Listo, tu muestra quedó guardada"; states "Entregable existe" + "Números consistentes"; checks shown, so the secret key works in Vercel; no error screen | ✅ |
+| Production: "500" test | Not run on production; passed on localhost |
+
+**Status: ✅ F4 done.** Locally and on production. Unit tests 62/62.
 
 ## Bug 2 — "unstable value `Date.now()`" on `/sample` (F4), 2026-10-10
 
@@ -129,5 +132,7 @@ Mutation check: adding 500 to the allowed quantities makes 2 tests fail (test pl
 
 **Retest (owner), localhost, signed in, after `a216efe`:** "Empezar una muestra nueva" → "500" test: the overlay did **not** appear ✅.
 
-**Status: ✅ Resolved on localhost.** Production retest on https://cruce-wheat.vercel.app: _pending_ (with the F4 production run).
+**Production retest** (F4 run on https://cruce-wheat.vercel.app, signed in, new sample): no error screen ✅.
+
+**Status: ✅ Resolved** on localhost and production.
 
