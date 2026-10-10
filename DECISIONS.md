@@ -53,6 +53,24 @@ What we decided, why, and what comes next. Source of truth: `docs/PACKET.md` and
 **Tested (local production build, signed out):** `/sample`, `/proof`, `/review` → 307 to `/?next=…`; `/` → 200 with the landing text and "Entrar con Google"; `/?error=auth` shows the Spanish error; `/auth/callback` without a valid code → `/?error=auth`; `GET /auth/signout` → 405, `POST` → 303 to `/`. Ad-hoc checks of `safeNextPath` (rejects `//evil.com`, `https://evil.com`, `/\evil.com`, `javascript:`), `isGoogleUser` (rejects anonymous and email-only users) and `isProtectedPath`: 16/16 passed. These move into the unit tests when the test runner is added in F4.
 **Not verifiable by me:** a real Google sign-in. Supabase's OAuth `state` is opaque, so the Redirect URLs allow-list can only be confirmed by signing in.
 
+## 2026-10-10 — Bug: Google sign-in fails on production only
+
+**Symptom:** on https://cruce-wheat.vercel.app (fresh incognito window, started there) Google sign-in always ends at `/?error=auth`. It works on localhost. Supabase does send the browser back to `cruce-wheat.vercel.app`, so the Redirect URLs allow-list accepts it and the failure is inside `/auth/callback`.
+
+**Step 1, diagnose before changing behavior:** `/auth/callback` now logs one line per failure (`[auth/callback] sign-in failed {…}` in Vercel → Logs) and adds `&reason=` to the redirect:
+
+| `reason` | Meaning |
+| --- | --- |
+| `provider_error` | Supabase or Google refused; the log includes Supabase's `error`, `error_code`, `error_description`. |
+| `missing_code` | Came back without `?code=`. |
+| `verifier_missing` | The PKCE code verifier cookie wasn't readable on the server. |
+| `exchange_failed` | Supabase rejected the exchange; the log includes the error name, code, status and message. |
+| `not_google` | Signed in, but not with a Google identity. |
+
+The log also records yes/no facts about the PKCE cookies that arrived (`legacy_verifier_cookie`, `flow_slot_cookies`, `matching_flow_slot_cookie`, `flow_id_in_url`, `sb_cookie_count`). It never logs the auth code, tokens, cookie names or cookie values. Tested locally: each reason except `not_google` (needs a real non-Google account) produced the right redirect and log line, and a search of the server log for the fake code and verifier values found nothing.
+
+**Found while reading `@supabase/auth-js`:** this version keeps the verifier in a per-attempt cookie (keyed by a flow id that the browser adds to `redirectTo` as `sb_flow_id`) and also in a legacy fixed cookie that mirrors the most recent attempt. On the server, `exchangeCodeForSession(code)` only uses the flow id if it is passed explicitly, so our callback reads the legacy cookie. Not fixed yet; waiting on the production log.
+
 ## Tomorrow's first move
 
 Confirm F2 by hand: Google sign-in and sign-out on `http://localhost:3000` and on https://cruce-wheat.vercel.app (after a sign-in, you should land on `/sample`, not on another app). Then F3: the `cruce_*` schema with RLS (policies reject anonymous sessions) and the worker-A-vs-worker-B test.
