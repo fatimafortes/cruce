@@ -85,3 +85,23 @@ Results of manual and automated tests. The full mechanical pass and persona test
 **Status: ✅ F3 done.** Worker A cannot read worker B's attempt, enforced by RLS in the real project.
 
 **Correction:** the F3 plan described in chat said share-link tokens would be 48 hex characters. The migration generates 64 (two random UUIDs without dashes, ~244 random bits), which test #30 confirms. `DECISIONS.md` already says 64; the requirement is 32+.
+
+## F4 — sample flow and rule checks, 2026-10-10
+
+**Unit tests (`npm test`, Vitest 5.0.3): 62 of 62 pass.**
+
+| File | Covers |
+| --- | --- |
+| `lib/checks.test.ts` | Correct email passes all 6 checks (test plan #4); "500" instead of "400" flags "Cantidad pendiente" and "Cantidades que no coinciden: Revisa: 500 no aparece en la orden." (test plan #5); PO variants; wrong PO and part rejected; 8 accepted and 5 rejected date forms; PO/part/date never read as quantities; task 2 (250/150/Nov 19, wrong split flagged); no score in the output |
+| `lib/validation.test.ts` | Empty → "Escribe tu correo antes de enviarlo." (test plan #2); 5,000 chars → "Máximo 3,000 caracteres." (test plan #3); 79/80/3,000; trimming; emoji counted like Postgres; follow-up 39/40/1,501; unknown fields rejected |
+| `lib/states.test.ts` | The four states: nothing reached before an attempt; 1 and 2 reached when all checks pass; a flagged number → neutral "Revisa los números marcados"; unavailable checks → pending; no number-as-grade |
+| `lib/auth-rules.test.ts` | The 16 F2 auth-rule checks (moved from the scratch script) |
+| `lib/env.test.ts` | The public key must be `sb_publishable_…`: legacy JWT, secret key and empty value are rejected; the error names the variable, never the value |
+
+Mutation check: adding 500 to the allowed quantities makes 2 tests fail (test plan #5 and the multi-flag test).
+
+**Local server (production build, signed out):** `POST /api/attempts` and `POST /api/attempts/<id>/followup` → 401 "Tu sesión terminó. Vuelve a entrar con Google."; with a fake session cookie → 401; `GET /api/attempts` → 405; `/sample` → 307 to sign-in.
+
+**Browser bundle:** the real secret key appears 0 times (compared against `.env.local` without printing it). The only `sb_secret_` text is supabase-js's prefix check. No `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY` or `saveRuleChecks` in client code.
+
+**Manual run with Google (owner):** _pending_ on `http://localhost:3000` and on https://cruce-wheat.vercel.app.

@@ -4,7 +4,9 @@ import { z } from "zod";
 // but only when each one is referenced literally as process.env.NEXT_PUBLIC_X.
 const publicSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  // Publishable key only. Rejects the legacy anon JWT (Bug 1) and, above all,
+  // a secret key pasted here by mistake: this value is public.
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().trim().startsWith("sb_publishable_"),
 });
 
 export type PublicEnv = z.infer<typeof publicSchema>;
@@ -22,6 +24,7 @@ export function publicEnv(): PublicEnv {
   return parsed.data;
 }
 
+// Names only, never values.
 export function missingMessage(error: z.ZodError): string {
   const names = error.issues.map((issue) => issue.path.join(".")).join(", ");
   return `Missing or invalid environment variables: ${names}. See .env.example.`;

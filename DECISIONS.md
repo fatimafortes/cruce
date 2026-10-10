@@ -100,6 +100,26 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 | DB length limits match the forms: email 80–3,000, follow-up 40–1,500, review note ≤ 500 | Security floor 4, enforced again in the database. |
 | Test = one `DO` block that raises an error at the end with the PASS/FAIL report | The error forces a rollback whatever the SQL Editor does with transactions, so the five temporary test users and their rows are never saved. |
 
+## 2026-10-10 — F4: sample flow and rule checks
+
+| Decision | Why |
+| --- | --- |
+| Secret key `cruce_server` (Supabase doesn't allow hyphens in key names) in `SUPABASE_SECRET_KEY`: `.env.local` and Vercel **Production only**, Secret/Sensitive | Cruce-only, so it can be revoked without touching other weeks. Previews run branch code and don't get it. |
+| The secret key is used only in `lib/supabase/admin.ts`, which exports one function, `saveRuleChecks()`; the client itself is never exported | It bypasses RLS across the whole shared project. |
+| Answers are saved **as the worker** (RLS checks ownership; the follow-up locks after one write). Then the server runs `lib/checks.ts` and writes only `rule_checks` with the secret key | Workers can't forge checks (C3). |
+| On task 2, all checks are re-run from the stored text | Deterministic, so the result is the same, and it repairs task-1 checks if they couldn't be saved the first time. |
+| If the secret key is missing or wrong, the attempt is still saved and the screen says "La revisión automática no está disponible ahora" | Test plan #10, same spirit as for Gemini. |
+| Key guards: `NEXT_PUBLIC_SUPABASE_ANON_KEY` must start with `sb_publishable_`; `SUPABASE_SECRET_KEY` with `sb_secret_`. Errors name the variable, never the value | Bug 1 lesson (legacy JWT), and above all prevents a secret key in a public variable. |
+| Gemini variables are checked separately (`geminiEnv()`) | A missing Gemini key must not stop the rule checks (F5). |
+| Checks: PO (`PO-48213`/`48213`), part `BRK-2207-A` (exact), 800, 400, Nov 14 in "Nov 14", "Nov. 14", "November 14(th)", "14 Nov", "14th of November", "11/14"; task 2: 250, 150, Nov 19. Any other number 100–2,000 is flagged (task 1 allows 800/400/1,200; task 2 also 250/150) | As in the prompt; task-2 allowed numbers confirmed by the owner. PO, part numbers and dates are never read as quantities. |
+| Check wording is neutral: found / "No encontramos…" / "Revisa: 500 no aparece en la orden." No red, no score; heading "Revisión automática de números — no es una calificación" | C1, and the persona (Lupita quits when a screen looks like a test she might fail). |
+| The four states on `/sample` reflect **this attempt**: "Entregable existe" once saved; "Números consistentes" only when every check passes, otherwise the neutral "Revisa los números marcados"; states 3 and 4 always pending/empty | Owner's change to the mockup (always-green chips would misstate the proof). |
+| zod validation shared by the forms and the API, counting characters like Postgres (`char_length`), trimmed; unknown fields rejected | Security floor 4; the form, API and DB constraint agree, and a client can't send `rule_checks`. |
+| API routes: `POST /api/attempts`, `POST /api/attempts/[id]/followup`; 401 signed out, 400 invalid, 409 for "not yours / missing / already answered" (one answer for all three) | Doesn't reveal whether someone else's attempt exists. |
+| `/sample` resumes the worker's latest attempt; "Empezar una muestra nueva" starts another | Reloading on a phone doesn't lose work. |
+| Tests with Vitest 5.0.3 (`npm test`); `@types/node` raised to ^24 | Vitest 5 needs Node types ≥ 22; local Node is 24. Types only. |
+| `.env.local`: the secret key had been pasted onto the end of the `GEMINI_MODEL` line; split into two lines (no values shown) | Otherwise `GEMINI_MODEL` would have carried the secret key and in F5 sent it to Google. |
+
 ## Tomorrow's first move
 
-F4: the sample flow and deterministic rule checks (`lib/sample.ts`, `lib/checks.ts` with unit tests). First manual step: create the Cruce-only `cruce-server` secret key and add it to `.env.local` and Vercel (Sensitive).
+Finish F4: manual run on localhost and on Vercel (`docs/TEST_LOG.md`, F4). Then F5: Gemini suggestion (server only, labeled, never decides) and the 5-attempts-per-day limit. Before F5: the new Gemini key in `.env.local`, then in Vercel (Production, Sensitive).
