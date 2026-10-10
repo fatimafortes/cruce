@@ -104,4 +104,27 @@ Mutation check: adding 500 to the allowed quantities makes 2 tests fail (test pl
 
 **Browser bundle:** the real secret key appears 0 times (compared against `.env.local` without printing it). The only `sb_secret_` text is supabase-js's prefix check. No `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY` or `saveRuleChecks` in client code.
 
-**Manual run with Google (owner):** _pending_ on `http://localhost:3000` and on https://cruce-wheat.vercel.app.
+**Manual run with Google (owner), localhost:3000, 2026-10-10:**
+
+| Step | Result |
+| --- | --- |
+| Empty answer → "Escribe tu correo antes de enviarlo." (test plan #2) | ✅ |
+| Correct email → 6 ✓, states "Entregable existe" + "Números consistentes" (test plan #4) | ✅ |
+| Task 2 (changed constraint) | _not reported yet_ |
+| "500" instead of "400" → flagged, neutral "Revisa los números marcados" (test plan #5) | _not reported yet_; the run hit Bug 2 |
+| Same flow on https://cruce-wheat.vercel.app | _pending_ |
+
+## Bug 2 — "unstable value `Date.now()`" on `/sample` (F4), 2026-10-10
+
+**Found by:** owner's manual F4 test on `localhost:3000/sample`, after "Empezar una muestra nueva" and the "500" test. The Next.js dev overlay showed: *Blocking Route · Server: Next.js encountered the unstable value Date.now() while prerendering.* The dev server log (`.next/dev/logs/next-development.log`) has the same error twice for route `/sample`, with no stack trace.
+
+**Where:** not in Cruce's code. A search of `app/`, `components/`, `lib/` and `proxy.ts` found no `Date.now()`, `new Date()`, `Math.random()` or `crypto.randomUUID()`. The call is inside `supabase-js`: `getUser()` reads the session cookie and compares the token's expiry with `Date.now()`.
+
+**Why it ran during prerendering:** `next.config.ts` enables Partial Prefetching (`partialPrefetching: true`, on by default in the Next 16 template). Next then prerenders an App Shell during runtime rendering, where `cookies()` **does** resolve (Next docs, `prefetch()`). Awaiting `cookies()` was therefore not enough to stop prerendering: with a real session cookie, the code went on into `supabase-js`, which read the clock. Signed-out pages never reached that check, which is why the F2 tests didn't show it.
+
+**Fix (`lib/auth.ts`, 6 lines):** `getGoogleUser()` now calls `await connection()` first, as the error message and the Next docs recommend for per-request work. Every server-side session read goes through this function (landing page, protected pages, `/sample`, both API routes), and `getLatestAttempt()` runs only after it. So all session-derived work happens at request time, never in a prerender. `connection()` is allowed in route handlers (Next forbids it only inside `after()`, `"use cache"` and `dynamic = "error"`, none of which Cruce uses). Nothing else changed.
+
+**Verified:** type check, lint and 62/62 unit tests pass. I tried to reproduce the error from the command line with a fake session cookie, but couldn't: the owner's dev server was already running, and Next allows one dev server per project. So that before/after comparison never ran. The production build wasn't run, to avoid disturbing the running dev server; Vercel builds on push.
+
+**Retest (owner):** _pending_. Reload `localhost:3000/sample` signed in and repeat "Empezar una muestra nueva" → "500" test; the overlay should not appear. Then the same on Vercel.
+
