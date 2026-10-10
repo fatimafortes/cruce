@@ -52,8 +52,36 @@ Results of manual and automated tests. The full mechanical pass and persona test
 | Google sign-in lands on `/sample` | ✅ |
 | Sign-out ("Salir") | ✅ |
 | `/sample` redirects to the landing page when signed out | ✅ |
-| A `cruce-<hash>-….vercel.app` URL moves to `cruce-wheat.vercel.app` | Not checked on production yet; verified locally only (table above) |
+| A `cruce-<hash>-….vercel.app` URL moves to `cruce-wheat.vercel.app` | ✅ Confirmed on production (checked after `39deb7f` was pushed) |
 
 **Status: ✅ Resolved.** F2's "done when" is met: sign-in and sign-out work locally and on Vercel.
 
 **Lesson:** with this Supabase project, use only the publishable key (`sb_publishable_…`) in `NEXT_PUBLIC_SUPABASE_ANON_KEY`, in `.env.local` and in Vercel. After changing any `NEXT_PUBLIC_*` value, redeploy.
+
+## F3 — RLS: worker A cannot read worker B's attempt, 2026-10-10
+
+**Test:** `supabase/tests/cruce_rls_test.sql`, 36 checks covering worker A, worker B, reviewer R, an anonymous user, an email-only user and a signed-out visitor. It rolls back everything it creates.
+
+**Pre-check in a local Postgres engine (PGlite 0.3.16, Postgres in WebAssembly)** with stand-ins for Supabase's roles, `auth.uid()`, `auth.jwt()`, `auth.users` and default grants:
+
+- Migration applied: 5 `cruce_*` tables, RLS on all 5, 13 policies, no other objects created in `public`.
+- Test: **36 of 36 PASS**, including #10 "B cannot read A's attempt by id (rows=0)".
+- Rows left after the test: 0 users, 0 attempts, 0 reviewers, 0 snapshots.
+- Re-running the migration fails on the first object and applies nothing.
+- Mutation check (the test must catch real mistakes):
+  - attempts readable by everyone → 3 FAIL (#10, #11, #21);
+  - Google check weakened to "signed in" → 2 FAIL (#16 anonymous, #17 email-only).
+
+**Supabase run (the real acceptance test), 2026-10-10**, shared semester project, SQL Editor:
+
+| Step | Result |
+| --- | --- |
+| Migration `20261010150000_cruce_schema.sql` | ✅ "Success. No rows returned"; the 5 `cruce_*` tables exist |
+| RLS test `cruce_rls_test.sql` | ✅ `CRUCE RLS TEST: ALL PASS — 36 of 36 passed. All changes rolled back.` |
+| #10 B cannot read A's attempt by id | ✅ (part of the 36) |
+| #30 share-link token length | ✅ 64 hex characters |
+| Owner added to `cruce_reviewers` | ✅ 1 row returned |
+
+**Status: ✅ F3 done.** Worker A cannot read worker B's attempt, enforced by RLS in the real project.
+
+**Correction:** the F3 plan described in chat said share-link tokens would be 48 hex characters. The migration generates 64 (two random UUIDs without dashes, ~244 random bits), which test #30 confirms. `DECISIONS.md` already says 64; the requirement is 32+.
