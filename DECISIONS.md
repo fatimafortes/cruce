@@ -75,7 +75,7 @@ The log also records yes/no facts about the PKCE cookies that arrived (`legacy_v
 
 | Decision | Why |
 | --- | --- |
-| Root cause: wrong `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel (`401 Invalid API key` on the code exchange). Fixed in Vercel and redeployed without cache | `.env.local` was right, so localhost worked. `NEXT_PUBLIC_*` values are baked in at build time, so every change needs a redeploy. |
+| Root cause: Vercel had the legacy anon JWT (`eyJ…`) in `NEXT_PUBLIC_SUPABASE_ANON_KEY` (`401 Invalid API key` on the code exchange). Replaced with the publishable key and redeployed. **Resolved 2026-10-10**: sign-in, sign-out and the signed-out redirect pass on production | `.env.local` had the publishable key, so localhost worked. The project most likely has legacy JWT keys disabled: use only `sb_publishable_…`. Not a secret key, so nothing to rotate. `NEXT_PUBLIC_*` values are baked in at build time, so every change needs a redeploy. |
 | In production, `proxy.ts` sends any host other than `cruce-wheat.vercel.app` to the same path there (307), before anything else | Some attempts started on per-deployment URLs. `redirectTo` comes from the browser's current origin, and PKCE cookies are per host, so sign-in must start and end on the one host in Supabase's allow-list. Detected with `VERCEL_ENV=production`, which Vercel sets for production deployment URLs too. The host lives in `lib/site.ts`. |
 | `redirectTo` stays built from `window.location.origin` | After the proxy redirect, that origin is always the production host in production and `localhost:3000` locally. Hard-coding the production URL in the button would break localhost and wouldn't fix cookies saved on the wrong host. |
 | The callback passes `sb_flow_id` as `flowId` to `exchangeCodeForSession` | Uses this attempt's own verifier. With a flow id, the library deliberately won't fall back to another attempt's verifier; without one, it still reads the legacy cookie. |
@@ -84,4 +84,4 @@ The log also records yes/no facts about the PKCE cookies that arrived (`legacy_v
 
 ## Tomorrow's first move
 
-Retest F2 on production after the redeploy with the corrected key: Google sign-in and sign-out on https://cruce-wheat.vercel.app (land on `/sample`), and a `cruce-<hash>-….vercel.app` URL should move to `cruce-wheat.vercel.app`. Record the result in `docs/TEST_LOG.md` (Bug 1). Then F3: the `cruce_*` schema with RLS (policies reject anonymous sessions) and the worker-A-vs-worker-B test.
+F3: the `cruce_*` schema with RLS as a migration in `supabase/migrations/`, applied by hand in the Supabase SQL Editor, plus the worker-A-cannot-read-worker-B test logged in `docs/TEST_LOG.md`. Still open from F2: open a `cruce-<hash>-….vercel.app` URL once and confirm it moves to `cruce-wheat.vercel.app`.

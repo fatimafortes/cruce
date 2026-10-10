@@ -18,13 +18,13 @@ Results of manual and automated tests. The full mechanical pass and persona test
  matching_flow_slot_cookie: false, sb_cookie_count: 5}
 ```
 
-**Root cause:** `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel held a wrong value (`.env.local` was correct). Supabase rejected the server's code exchange with `401 Invalid API key`. Starting sign-in in the browser still worked, which hid the problem until the callback.
+**Root cause:** `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel held the legacy anon JWT (`eyJ…`, role `anon`; not a secret or `service_role` key), while `.env.local` held the publishable key (`sb_publishable_…`). The project most likely has its legacy JWT-based API keys disabled, so the legacy key is rejected. Supabase rejected the server's code exchange with `401 Invalid API key`. Starting sign-in in the browser still worked, which hid the problem until the callback.
 
 **Contributing problem:** some attempts started on per-deployment URLs (`cruce-ow0r2hw7r-…`, `cruce-86oiqe2d0-…`) while the callback ran on `cruce-wheat.vercel.app`. `redirectTo` was built from the browser's current origin, so it pointed at a host missing from Supabase's Redirect URLs list, and the PKCE verifier cookies were saved on a different host from the one the callback ran on. `flow_id_in_url: false` matches this: the URL that came back wasn't the `redirectTo` we built.
 
 **Fixes:**
 
-1. Vercel: the publishable key was re-pasted and production redeployed without the build cache (done by hand). `NEXT_PUBLIC_*` values are baked in at build time, so a redeploy is required.
+1. Vercel: `NEXT_PUBLIC_SUPABASE_ANON_KEY` replaced with the publishable key and production redeployed (done by hand). `NEXT_PUBLIC_*` values are baked in at build time, so a redeploy is required.
 2. `proxy.ts` + `lib/site.ts`: when `VERCEL_ENV=production` and the host isn't `cruce-wheat.vercel.app`, every request gets a 307 to the same path and query on `cruce-wheat.vercel.app` before anything else runs. Sign-in can only start, and finish, on the production host.
 3. `/auth/callback` passes `sb_flow_id` to `exchangeCodeForSession(code, { flowId })`, so Supabase uses this attempt's own verifier cookie instead of the "most recent attempt" copy.
 
@@ -45,4 +45,15 @@ Results of manual and automated tests. The full mechanical pass and persona test
 
 (In the local run, the signed-out redirect from `/sample` pointed at `localhost` because the local server builds it from its own URL; on Vercel it uses the real host.)
 
-**Production retest:** _pending_. Fresh incognito window → https://cruce-wheat.vercel.app → sign in → land on `/sample`; sign out; `/sample` redirects. Also: open a `cruce-<hash>-….vercel.app` URL and confirm it moves to `cruce-wheat.vercel.app`.
+**Production retest, 2026-10-10** (commit `c0c1de8` deployed and Ready; fresh incognito window on https://cruce-wheat.vercel.app):
+
+| Check | Result |
+| --- | --- |
+| Google sign-in lands on `/sample` | ✅ |
+| Sign-out ("Salir") | ✅ |
+| `/sample` redirects to the landing page when signed out | ✅ |
+| A `cruce-<hash>-….vercel.app` URL moves to `cruce-wheat.vercel.app` | Not checked on production yet; verified locally only (table above) |
+
+**Status: ✅ Resolved.** F2's "done when" is met: sign-in and sign-out work locally and on Vercel.
+
+**Lesson:** with this Supabase project, use only the publishable key (`sb_publishable_…`) in `NEXT_PUBLIC_SUPABASE_ANON_KEY`, in `.env.local` and in Vercel. After changing any `NEXT_PUBLIC_*` value, redeploy.
