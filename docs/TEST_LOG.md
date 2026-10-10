@@ -110,8 +110,9 @@ Mutation check: adding 500 to the allowed quantities makes 2 tests fail (test pl
 | --- | --- |
 | Empty answer → "Escribe tu correo antes de enviarlo." (test plan #2) | ✅ |
 | Correct email → 6 ✓, states "Entregable existe" + "Números consistentes" (test plan #4) | ✅ |
-| Task 2 (changed constraint) | _not reported yet_ |
-| "500" instead of "400" → flagged, neutral "Revisa los números marcados" (test plan #5) | _not reported yet_; the run hit Bug 2 |
+| Task 2, correct answer → 250 ✓, 150 ✓, Nov 19 ✓, "Listo, tu muestra quedó guardada" | ✅ |
+| Task 2, wrong answer → "No encontramos…" for 250, 150 and Nov 19, plus "Revisa: 500 no aparece en la orden.", neutral style | ✅ |
+| New sample with "500" instead of "400" → neutral "Revisa los números marcados" (test plan #5) | ✅ (this run also surfaced Bug 2) |
 | Same flow on https://cruce-wheat.vercel.app | _pending_ |
 
 ## Bug 2 — "unstable value `Date.now()`" on `/sample` (F4), 2026-10-10
@@ -126,5 +127,7 @@ Mutation check: adding 500 to the allowed quantities makes 2 tests fail (test pl
 
 **Verified:** type check, lint and 62/62 unit tests pass. I tried to reproduce the error from the command line with a fake session cookie, but couldn't: the owner's dev server was already running, and Next allows one dev server per project. So that before/after comparison never ran. The production build wasn't run, to avoid disturbing the running dev server; Vercel builds on push.
 
-**Retest (owner):** _pending_. Reload `localhost:3000/sample` signed in and repeat "Empezar una muestra nueva" → "500" test; the overlay should not appear. Then the same on Vercel.
+**Retest (owner), localhost, signed in, after `a216efe`:** "Empezar una muestra nueva" → "500" test: the overlay did **not** appear ✅.
+
+**Status: ✅ Resolved on localhost.** Production retest on https://cruce-wheat.vercel.app: _pending_ (with the F4 production run).
 
