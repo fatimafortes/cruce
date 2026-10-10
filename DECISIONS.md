@@ -146,4 +146,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-Finish F5 on production: labeled suggestion, injection, and the daily-limit message (`docs/TEST_LOG.md`, F5). Then F6: human review (`/review`, reviewers only), showing the AI suggestion next to the rule checks so a reviewer can see when they disagree (observation O1).
+F5 is done. Next: F6: human review (`/review`, reviewers only), showing the AI suggestion next to the rule checks so a reviewer can see when they disagree (observation O1).
