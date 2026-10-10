@@ -2,10 +2,19 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/env";
 import { isGoogleUser, isProtectedPath, signInPath } from "@/lib/auth-rules";
+import { productionRedirectUrl } from "@/lib/site";
 
-// Refreshes the Supabase session cookie on every page request and sends
-// signed-out visitors away from protected pages. Pages check again on their own.
+// Moves production traffic to the one production host, refreshes the Supabase
+// session cookie on every page request, and sends signed-out visitors away
+// from protected pages. Pages check again on their own.
 export async function proxy(request: NextRequest) {
+  // Before anything else: sign-in must start and end on the same host.
+  const canonical = productionRedirectUrl(
+    request.headers.get("host"),
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
+  if (canonical) return NextResponse.redirect(canonical, 307);
+
   const env = publicEnv();
   let response = NextResponse.next({ request });
 

@@ -69,8 +69,19 @@ What we decided, why, and what comes next. Source of truth: `docs/PACKET.md` and
 
 The log also records yes/no facts about the PKCE cookies that arrived (`legacy_verifier_cookie`, `flow_slot_cookies`, `matching_flow_slot_cookie`, `flow_id_in_url`, `sb_cookie_count`). It never logs the auth code, tokens, cookie names or cookie values. Tested locally: each reason except `not_google` (needs a real non-Google account) produced the right redirect and log line, and a search of the server log for the fake code and verifier values found nothing.
 
-**Found while reading `@supabase/auth-js`:** this version keeps the verifier in a per-attempt cookie (keyed by a flow id that the browser adds to `redirectTo` as `sb_flow_id`) and also in a legacy fixed cookie that mirrors the most recent attempt. On the server, `exchangeCodeForSession(code)` only uses the flow id if it is passed explicitly, so our callback reads the legacy cookie. Not fixed yet; waiting on the production log.
+**Found while reading `@supabase/auth-js`:** this version keeps the verifier in a per-attempt cookie (keyed by a flow id that the browser adds to `redirectTo` as `sb_flow_id`) and also in a legacy fixed cookie that mirrors the most recent attempt. On the server, `exchangeCodeForSession(code)` only uses the flow id if it is passed explicitly, so our callback read the legacy cookie.
+
+**Step 2, root cause and fixes** (full record in `docs/TEST_LOG.md`, Bug 1):
+
+| Decision | Why |
+| --- | --- |
+| Root cause: wrong `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel (`401 Invalid API key` on the code exchange). Fixed in Vercel and redeployed without cache | `.env.local` was right, so localhost worked. `NEXT_PUBLIC_*` values are baked in at build time, so every change needs a redeploy. |
+| In production, `proxy.ts` sends any host other than `cruce-wheat.vercel.app` to the same path there (307), before anything else | Some attempts started on per-deployment URLs. `redirectTo` comes from the browser's current origin, and PKCE cookies are per host, so sign-in must start and end on the one host in Supabase's allow-list. Detected with `VERCEL_ENV=production`, which Vercel sets for production deployment URLs too. The host lives in `lib/site.ts`. |
+| `redirectTo` stays built from `window.location.origin` | After the proxy redirect, that origin is always the production host in production and `localhost:3000` locally. Hard-coding the production URL in the button would break localhost and wouldn't fix cookies saved on the wrong host. |
+| The callback passes `sb_flow_id` as `flowId` to `exchangeCodeForSession` | Uses this attempt's own verifier. With a flow id, the library deliberately won't fall back to another attempt's verifier; without one, it still reads the legacy cookie. |
+| Preview deployments (`VERCEL_ENV=preview`) are not redirected | Previews exist to test new code. Sign-in there isn't supported (not in the allow-list). |
+| Diagnostic logging in `/auth/callback` stays | It found this bug in one retest and logs nothing secret. |
 
 ## Tomorrow's first move
 
-Confirm F2 by hand: Google sign-in and sign-out on `http://localhost:3000` and on https://cruce-wheat.vercel.app (after a sign-in, you should land on `/sample`, not on another app). Then F3: the `cruce_*` schema with RLS (policies reject anonymous sessions) and the worker-A-vs-worker-B test.
+Retest F2 on production after the redeploy with the corrected key: Google sign-in and sign-out on https://cruce-wheat.vercel.app (land on `/sample`), and a `cruce-<hash>-….vercel.app` URL should move to `cruce-wheat.vercel.app`. Record the result in `docs/TEST_LOG.md` (Bug 1). Then F3: the `cruce_*` schema with RLS (policies reject anonymous sessions) and the worker-A-vs-worker-B test.

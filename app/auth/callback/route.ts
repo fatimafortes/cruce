@@ -14,7 +14,10 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
   const next = safeNextPath(searchParams.get("next"));
-  const pkce = pkceCookieFacts(request, searchParams.get("sb_flow_id"));
+  // The browser adds sb_flow_id to redirectTo. Passing it makes Supabase use
+  // this attempt's own verifier cookie instead of the "most recent attempt" copy.
+  const flowId = searchParams.get("sb_flow_id");
+  const pkce = pkceCookieFacts(request, flowId);
 
   // Supabase sends these instead of ?code= when Google or Supabase refused the sign-in.
   const providerError = searchParams.get("error");
@@ -32,7 +35,10 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(
+    code,
+    flowId ? { flowId } : undefined,
+  );
 
   if (error) {
     const reason =
