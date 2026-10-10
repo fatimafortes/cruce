@@ -189,3 +189,18 @@ The F3 RLS test still passes 36/36 with the new trigger in place. No rows left. 
 **O1, second instance (production):** in the injection run, point 1 said the dates differed from the new scenario, but Nov 14 / Nov 19 were correct. Same conclusion as above: a model error, visible as such, with no effect on any state.
 
 **Status: ✅ F5 done.** Locally and on production, including the done-when (prompt injection → normal suggestion, no state change).
+
+## F6 — human review, 2026-10-10
+
+**Unit tests (`npm test`): 96 of 96 pass** (8 new).
+
+| File | Covers |
+| --- | --- |
+| `lib/validation.test.ts` | Review body: "Sí" with no note accepted; "Todavía no" needs a note of ≥ 10 characters (blank and 9 rejected, 10 accepted); note capped at 500; a choice is required; invalid attempt id rejected; extra fields (e.g. `reviewer_id`) rejected |
+| `lib/states.test.ts` | State 3: pending until a person decides; "Explicó el cambio" when Sí; neutral "Explicó el cambio · todavía no" (no digits, no "reprobó/falló/score/calificación") when Todavía no; a review changes only state 3, state 4 stays empty |
+
+**Database rules:** already proven by the F3 RLS test in Supabase (36/36): non-reviewer can't review (#14), the queue has no user_id/email/name (#24), a reviewer reviews (#25), no self-review (#26), the worker reads their own review (#29), another worker can't (#33).
+
+**Local server (production build, signed out):** `/review` → 307 to sign-in; `POST /api/reviews` → 401 "Tu sesión terminó. Vuelve a entrar con Google."; `GET /api/reviews` → 405.
+
+**Manual run (owner as reviewer, second Google account as worker):** _pending_.

@@ -45,3 +45,27 @@ export const attemptIdSchema = z.uuid();
 export function firstMessage(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Revisa tu respuesta.";
 }
+
+// Human review (F6). The note is required for "todavía no", so the worker
+// always learns what to improve (packet flow: "not yet, with reviewer note").
+export const REVIEW_NOTE_MAX = 500;
+export const REVIEW_NOTE_MIN_NOT_YET = 10;
+
+export const reviewBodySchema = z
+  .strictObject({
+    attemptId: z.uuid({ error: "No encontramos esta muestra." }),
+    explained: z.boolean({ error: "Elige «Sí» o «Todavía no»." }),
+    note: z.string({ error: "Escribe una nota." }).max(REVIEW_NOTE_MAX * 4).trim(),
+  })
+  .superRefine((review, ctx) => {
+    const n = charCount(review.note);
+    if (n > REVIEW_NOTE_MAX) {
+      ctx.addIssue({ code: "custom", path: ["note"], message: `Máximo ${fmt(REVIEW_NOTE_MAX)} caracteres.` });
+    } else if (!review.explained && n < REVIEW_NOTE_MIN_NOT_YET) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["note"],
+        message: "Si eliges «Todavía no», escribe una nota (al menos 10 caracteres) sobre qué falta.",
+      });
+    }
+  });

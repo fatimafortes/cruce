@@ -19,6 +19,7 @@ export type SampleAttempt = {
   followupAnswer: string | null;
   ruleChecks: RuleChecks | null;
   aiSuggestion: string | null;
+  review: { explained: boolean; note: string } | null;
 };
 
 async function post(
@@ -62,6 +63,7 @@ export function SampleFlow({
       followupAnswer: null,
       ruleChecks: (result.data.ruleChecks as RuleChecks | null) ?? null,
       aiSuggestion: null,
+      review: null,
     });
     setAttemptsLeft((left) => (left === null ? null : Math.max(0, left - 1)));
     return null;
@@ -142,9 +144,20 @@ export function SampleFlow({
               </details>
               <CheckList title="Tu respuesta al cambio" checks={attempt.ruleChecks?.task2 ?? null} />
               <AiSuggestion text={attempt.aiSuggestion} />
-              <p className="rounded-2xl bg-white p-4 text-slate-700">
-                Listo, tu muestra quedó guardada en tu cuenta. Una persona revisará si explicaste el cambio.
-              </p>
+              {attempt.review && (
+                <section className="flex flex-col gap-2 rounded-2xl border border-slate-300 bg-white p-4">
+                  <h3 className="font-semibold text-slate-900">Nota de la persona revisora</h3>
+                  <p className="text-slate-700">
+                    {attempt.review.explained ? "Explicaste el cambio." : "Todavía no se ve cómo explicas el cambio."}
+                  </p>
+                  {attempt.review.note && <p className="whitespace-pre-wrap text-slate-800">{attempt.review.note}</p>}
+                </section>
+              )}
+              {!attempt.review && (
+                <p className="rounded-2xl bg-white p-4 text-slate-700">
+                  Listo, tu muestra quedó guardada en tu cuenta. Una persona revisará si explicaste el cambio.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => setAttempt(null)}
@@ -160,7 +173,12 @@ export function SampleFlow({
       <ProofStates
         states={proofStates(
           attempt
-            ? { emailAnswer: attempt.emailAnswer, followupAnswer: attempt.followupAnswer, ruleChecks: attempt.ruleChecks }
+            ? {
+                emailAnswer: attempt.emailAnswer,
+                followupAnswer: attempt.followupAnswer,
+                ruleChecks: attempt.ruleChecks,
+                review: attempt.review,
+              }
             : null,
         )}
       />

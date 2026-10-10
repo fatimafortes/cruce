@@ -138,6 +138,20 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 | Separate F5 commit (the prompt's plan pairs F5 and F6) | Owner's decision: each feature gets its own test record. |
 | Vitest maps `server-only` to an empty stub (`test/stubs/server-only.ts`) | So server modules like `lib/gemini.ts` can be unit-tested; Next.js still enforces it in real builds. |
 
+## 2026-10-10 — F6: human review
+
+| Decision | Why |
+| --- | --- |
+| `/review`: Google sign-in (proxy + page), then a reviewer check against `cruce_reviewers` (RLS shows each user only their own row). Non-reviewers see only "No autorizado"; the queue isn't loaded | F6 done-when; nothing about other workers reaches a non-reviewer. |
+| The queue comes from `cruce_review_queue()` (F3): no user id, name or email, the reviewer's own attempts excluded. Only attempts with task 2 answered are listed; not-reviewed first (oldest first), reviewed ones in a collapsed section and still editable | "Explained under the changed constraint" needs the follow-up. |
+| Attempts are labeled by submission time in Monterrey ("Muestra del 10 oct, 17:05"), never by person | C3 and the packet swimlane ("no name shown"). |
+| Each card shows both answers, the rule checks for both tasks and the AI suggestion side by side, plus "La IA puede equivocarse: compárala con la revisión de números y con las respuestas" | Observation O1: the model contradicted the checks twice; the reviewer should see it. |
+| Decision "¿Explicó el cambio?" → **Sí / Todavía no**, nothing preselected. Note ≤ 500 characters, **required (≥ 10) for "Todavía no"**, optional for "Sí" | Owner's decision; packet flow "not yet, with reviewer note". |
+| `POST /api/reviews` runs **as the reviewer**, not with the secret key: RLS enforces "reviewers only" and "no self-review". The route also checks that the attempt is in the reviewer's queue. Update if this reviewer already reviewed it, otherwise insert; 401 / 403 "No autorizado." / 400 / 404 / 409 ("Otra persona ya revisó esta muestra.") | Least privilege: no new secret-key code. |
+| State 3 comes **only** from the review: "Explicó el cambio" (done) / neutral "Explicó el cambio · todavía no" / "lo decide una persona". The AI suggestion still never changes a state | C3. "Todavía no" is shown neutrally, like a flagged number (C1). |
+| The worker sees the decision and the note on `/sample` under "Nota de la persona revisora", without the reviewer's name. The full `/proof` page is F7 and will reuse the same states | F6 done-when ("a review appears on the worker's proof"). |
+| No migration: F3 already created `cruce_reviews`, its policies and the queue function | Its RLS rules are covered by the F3 test (#14, #24–#26, #29, #33). |
+
 ## Known risks
 
 | Risk | Status and mitigation |
@@ -146,4 +160,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-F5 is done. Next: F6: human review (`/review`, reviewers only), showing the AI suggestion next to the rule checks so a reviewer can see when they disagree (observation O1).
+Finish F6: manual test with the second Google account as worker (`docs/TEST_LOG.md`, F6). Then F7: the worker-owned proof record (`/proof`, PDF, share link, revoke, public `/p/[token]`).

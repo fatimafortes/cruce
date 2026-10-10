@@ -11,6 +11,8 @@ export type AttemptForStates = {
   emailAnswer: string | null;
   followupAnswer: string | null;
   ruleChecks: RuleChecks | null;
+  // Set only by a human reviewer (F6). Nothing else decides state 3.
+  review?: { explained: boolean } | null;
 };
 
 export function proofStates(attempt: AttemptForStates | null): ProofState[] {
@@ -30,7 +32,19 @@ export function proofStates(attempt: AttemptForStates | null): ProofState[] {
       ? { key: 1, label: "Entregable existe", status: "done" }
       : { key: 1, label: "Entregable · todavía no lo envías", status: "pending" },
     numbers,
-    { key: 3, label: "Explicó el cambio · lo decide una persona", status: "pending" },
+    explainedState(attempt),
     { key: 4, label: "Empleador aceptó · ningún empleador se ha comprometido aún", status: "empty" },
   ];
+}
+
+// State 3 comes only from the reviewer's decision. "Todavía no" is shown
+// neutrally, like a flagged number: something to work on, not a grade.
+function explainedState(attempt: AttemptForStates | null): ProofState {
+  if (attempt?.review?.explained === true) {
+    return { key: 3, label: "Explicó el cambio", status: "done" };
+  }
+  if (attempt?.review?.explained === false) {
+    return { key: 3, label: "Explicó el cambio · todavía no", status: "review" };
+  }
+  return { key: 3, label: "Explicó el cambio · lo decide una persona", status: "pending" };
 }

@@ -9,10 +9,13 @@ export type AttemptView = {
   followupAnswer: string | null;
   ruleChecks: RuleChecks | null;
   aiSuggestion: string | null;
+  review: ReviewView | null;
 };
 
+export type ReviewView = { explained: boolean; note: string };
+
 const checkSchema = z.object({ item: z.string(), passed: z.boolean(), detail: z.string() });
-const ruleChecksSchema = z.object({
+export const ruleChecksSchema = z.object({
   version: z.literal(1),
   task1: z.array(checkSchema),
   task2: z.array(checkSchema).nullable(),
@@ -33,12 +36,21 @@ export async function getLatestAttempt(): Promise<AttemptView | null> {
   }
   if (!data) return null;
   const checks = ruleChecksSchema.safeParse(data.rule_checks);
+
+  // The reviewer's decision on this attempt (RLS: owners read reviews of their own attempts).
+  const { data: review } = await supabase
+    .from("cruce_reviews")
+    .select("explained, note")
+    .eq("attempt_id", data.id)
+    .maybeSingle();
+
   return {
     id: data.id,
     emailAnswer: data.email_answer,
     followupAnswer: data.followup_answer,
     ruleChecks: checks.success ? checks.data : null,
     aiSuggestion: data.ai_suggestion,
+    review: review ? { explained: review.explained, note: review.note } : null,
   };
 }
 

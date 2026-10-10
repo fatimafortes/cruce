@@ -41,3 +41,27 @@ describe("proofStates", () => {
     expect(proofStates(withAi)).toEqual(proofStates(base));
   });
 });
+
+describe("state 3 (human review, F6)", () => {
+  const base = { emailAnswer: OK, followupAnswer: "x".repeat(40), ruleChecks: runChecks(OK, null) };
+
+  it("pending until a person decides", () => {
+    expect(proofStates({ ...base, review: null })[2]).toEqual({ key: 3, label: "Explicó el cambio · lo decide una persona", status: "pending" });
+  });
+
+  it("reached when the reviewer says sí", () => {
+    expect(proofStates({ ...base, review: { explained: true } })[2]).toEqual({ key: 3, label: "Explicó el cambio", status: "done" });
+  });
+
+  it("neutral 'todavía no', never a failure or a grade", () => {
+    const state = proofStates({ ...base, review: { explained: false } })[2];
+    expect(state).toEqual({ key: 3, label: "Explicó el cambio · todavía no", status: "review" });
+    expect(state.label).not.toMatch(/\d|reprob|fall|score|calificaci/i);
+  });
+
+  it("the review changes only state 3; state 4 stays empty", () => {
+    const states = proofStates({ ...base, review: { explained: true } });
+    expect(states[3].status).toBe("empty");
+    expect(states.map((s) => s.key)).toEqual([1, 2, 3, 4]);
+  });
+});

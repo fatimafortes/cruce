@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { charCount, emailAnswerSchema, firstMessage, followupAnswerSchema, task1BodySchema } from "@/lib/validation";
+import { charCount, emailAnswerSchema, firstMessage, followupAnswerSchema, reviewBodySchema, task1BodySchema } from "@/lib/validation";
 
 const msg = (schema: typeof emailAnswerSchema, value: unknown) => {
   const result = schema.safeParse(value);
@@ -47,5 +47,36 @@ describe("followupAnswerSchema", () => {
 describe("task1BodySchema", () => {
   it("rejects unknown fields, so a client can't send rule_checks", () => {
     expect(task1BodySchema.safeParse({ emailAnswer: "a".repeat(80), rule_checks: {} }).success).toBe(false);
+  });
+});
+
+describe("reviewBodySchema", () => {
+  const id = "3f1c2b7e-8a4d-4c1e-9b2a-6d5e4f3a2b1c";
+  const parse = (body: unknown) => {
+    const result = reviewBodySchema.safeParse(body);
+    return result.success ? null : firstMessage(result.error);
+  };
+
+  it("accepts sí with no note", () => {
+    expect(parse({ attemptId: id, explained: true, note: "" })).toBeNull();
+  });
+
+  it("requires a note of at least 10 characters for todavía no", () => {
+    expect(parse({ attemptId: id, explained: false, note: "   " })).toBe(
+      "Si eliges «Todavía no», escribe una nota (al menos 10 caracteres) sobre qué falta.",
+    );
+    expect(parse({ attemptId: id, explained: false, note: "a".repeat(9) })).not.toBeNull();
+    expect(parse({ attemptId: id, explained: false, note: "a".repeat(10) })).toBeNull();
+  });
+
+  it("caps the note at 500 characters", () => {
+    expect(parse({ attemptId: id, explained: true, note: "a".repeat(500) })).toBeNull();
+    expect(parse({ attemptId: id, explained: true, note: "a".repeat(501) })).toBe("Máximo 500 caracteres.");
+  });
+
+  it("requires a choice and a valid attempt id; rejects extra fields", () => {
+    expect(parse({ attemptId: id, note: "" })).toBe("Elige «Sí» o «Todavía no».");
+    expect(parse({ attemptId: "nope", explained: true, note: "" })).toBe("No encontramos esta muestra.");
+    expect(parse({ attemptId: id, explained: true, note: "", reviewer_id: id })).not.toBeNull();
   });
 });
