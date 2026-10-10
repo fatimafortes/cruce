@@ -146,4 +146,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-Finish F5: run `20261010200000_cruce_daily_limit.sql` and `cruce_daily_limit_test.sql` in the SQL Editor, then the manual test locally and on Vercel (`docs/TEST_LOG.md`, F5). Then F6: human review (`/review`, reviewers only).
+Finish F5 on production: labeled suggestion, injection, and the daily-limit message (`docs/TEST_LOG.md`, F5). Then F6: human review (`/review`, reviewers only), showing the AI suggestion next to the rule checks so a reviewer can see when they disagree (observation O1).
