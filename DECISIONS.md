@@ -16,6 +16,43 @@ What we decided, why, and what comes next. Source of truth: `docs/PACKET.md` and
 | Supabase via `@supabase/ssr`: `lib/supabase/client.ts` (browser) and `lib/supabase/server.ts` (server, cookie session) | Both use the anon key, so RLS always applies. No auth flow or tables yet (F2, F3). |
 | Template README and SVG assets removed | Not part of Cruce; the README now points to the docs. |
 
+## 2026-10-10 — Deploy 1 (earlier than planned)
+
+| Decision | Why |
+| --- | --- |
+| Deploy 1 done after F1, not after F2 | The repo was imported into Vercel right after the F1 push. Live URL: https://cruce-wheat.vercel.app (serves the F1 placeholder, so the build works on Vercel). The commit plan still has its later deploys; this one just came earlier. |
+| Skipped Vercel's Supabase integration | Supabase is set up by hand in F2, so we control exactly which variables reach Vercel and no service-role key is added automatically. |
+| No env vars in Vercel yet | F1 needs none: env is checked on first use, not at build. They are added in F2. |
+
+## 2026-10-10 — F2 setup: shared Supabase project
+
+| Decision | Why |
+| --- | --- |
+| Use the existing semester Supabase project, not a new one | The professor requires it. Other weeks' apps share its database and auth settings. |
+| Every Cruce table is prefixed `cruce_` (`cruce_attempts`, `cruce_reviews`, `cruce_proof_links`, `cruce_reviewers`, `cruce_gate_snapshots`) | Keeps Cruce apart from earlier weeks' tables. Migrations create, alter and grant only `cruce_*` objects and never drop or touch anything else. This renames the tables in the packet and the prompt; their columns and rules stay the same. |
+| Site URL left unchanged; only `https://cruce-wheat.vercel.app/**` added to Redirect URLs | Other weeks' apps rely on the Site URL. Because Supabase falls back to the Site URL when a redirect isn't allowed, Cruce always passes `redirectTo` explicitly, built from the request's own origin. |
+| Google provider was already enabled in the project | Checked through the public `/auth/v1/settings` endpoint. No new Google OAuth client. The Google consent screen shows whatever app name that existing client has. |
+| Anonymous sign-ins and email sign-in are enabled at the project level and stay on | Other weeks may use them. An anonymous user still gets the `authenticated` role, so Cruce cannot rely on "signed in" alone: the app checks for a Google identity before storing anything, and F3's RLS policies also require `(auth.jwt() ->> 'is_anonymous')::boolean is not true`. Security floor 2. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` holds the new publishable key (`sb_publishable_…`) | The publishable key works the same as the legacy anon key with `supabase-js`; the variable keeps the name from the implementation prompt. |
+| A Gemini key was pasted into the chat during setup; it is being replaced | Treated as exposed. The new key goes only into `.env.local` (and into Vercel in F5). It was never in the repo. |
+
+## 2026-10-10 — F2: auth and landing
+
+| Decision | Why |
+| --- | --- |
+| One rule for "signed in": Supabase verifies the session (`getUser()`) **and** the account has a Google identity (`lib/auth-rules.ts`, `lib/auth.ts`) | The shared project also allows anonymous and email sign-ins. Anonymous or email-only sessions count as signed out everywhere in Cruce. |
+| `proxy.ts` refreshes the session cookie and redirects signed-out visitors from `/sample`, `/proof`, `/review` to `/?next=<path>`; each page checks again | Next's docs advise against relying on the proxy alone. |
+| Sign-in passes `redirectTo = <current origin>/auth/callback?next=…` | The Site URL belongs to another app. Works on localhost and on the Vercel URL; Vercel preview URLs are not on the allow-list, so sign-in there would fall back to the Site URL. Test sign-in only on production and localhost. |
+| `next` accepts only same-site paths; anything else becomes `/sample` | Prevents an open redirect through `/?next=` or `/auth/callback?next=`. |
+| Sign-out is `POST /auth/signout` (GET returns 405) | Next prefetches links; a GET sign-out link could sign people out without a click. Supabase's cookies are `SameSite=Lax`, so another site can't trigger the POST with them. |
+| Session reads sit inside `<Suspense>`; the landing text and button area render instantly | Required with Cache Components (on by default in Next 16); a top-level `cookies()` read fails the build. |
+| Light theme only; dropped the template's dark-mode colors | The mockup is light, and the fixed colors clashed with the template's dark background. |
+| Landing adds: "Es una práctica con datos inventados de una planta ficticia. No es una vacante ni un examen." | So nobody mistakes Cruce for a job application or a test (C1, persona test). |
+| `/review` checks sign-in only for now | The reviewers-only check comes in F6, with the `cruce_reviewers` table from F3. |
+
+**Tested (local production build, signed out):** `/sample`, `/proof`, `/review` → 307 to `/?next=…`; `/` → 200 with the landing text and "Entrar con Google"; `/?error=auth` shows the Spanish error; `/auth/callback` without a valid code → `/?error=auth`; `GET /auth/signout` → 405, `POST` → 303 to `/`. Ad-hoc checks of `safeNextPath` (rejects `//evil.com`, `https://evil.com`, `/\evil.com`, `javascript:`), `isGoogleUser` (rejects anonymous and email-only users) and `isProtectedPath`: 16/16 passed. These move into the unit tests when the test runner is added in F4.
+**Not verifiable by me:** a real Google sign-in. Supabase's OAuth `state` is opaque, so the Redirect URLs allow-list can only be confirmed by signing in.
+
 ## Tomorrow's first move
 
-F2: manual setup of Supabase (project + Google provider + redirect URLs) and `.env.local`, then the Spanish landing page, Google sign-in/sign-out, and `proxy.ts` protecting `/sample`, `/proof`, `/review`.
+Confirm F2 by hand: Google sign-in and sign-out on `http://localhost:3000` and on https://cruce-wheat.vercel.app (after a sign-in, you should land on `/sample`, not on another app). Then F3: the `cruce_*` schema with RLS (policies reject anonymous sessions) and the worker-A-vs-worker-B test.
