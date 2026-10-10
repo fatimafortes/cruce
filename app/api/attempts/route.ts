@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jsonError, readJson } from "@/lib/api";
+import { DAILY_LIMIT_MESSAGE } from "@/lib/attempt-limits";
 import { getGoogleUser } from "@/lib/auth";
 import { runChecks } from "@/lib/checks";
 import { createClient } from "@/lib/supabase/server";
@@ -24,6 +25,9 @@ export async function POST(request: NextRequest) {
     .insert({ email_answer: emailAnswer })
     .select("id")
     .single();
+  if (error?.message === "cruce_daily_limit") {
+    return jsonError(429, DAILY_LIMIT_MESSAGE);
+  }
   if (error || !data) {
     console.error("[api/attempts] insert failed", JSON.stringify({ code: error?.code, message: error?.message }));
     return jsonError(500, "No pudimos guardar tu muestra. Inténtalo de nuevo.");

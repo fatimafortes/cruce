@@ -4,7 +4,7 @@ import { Header } from "@/components/header";
 import { InventedBadge } from "@/components/invented-badge";
 import { SampleFlow } from "@/components/sample-flow";
 import { SignOutButton } from "@/components/sign-out-button";
-import { getLatestAttempt } from "@/lib/attempts";
+import { getAttemptsLeftToday, getLatestAttempt } from "@/lib/attempts";
 import { requireGoogleUser } from "@/lib/auth";
 
 export default function SamplePage() {
@@ -27,6 +27,6 @@ export default function SamplePage() {
 // Reads the session and the worker's latest attempt, so it streams in behind Suspense.
 async function Flow() {
   await requireGoogleUser("/sample");
-  const latest = await getLatestAttempt();
-  return <SampleFlow initial={latest} />;
+  const [latest, attemptsLeft] = await Promise.all([getLatestAttempt(), getAttemptsLeftToday()]);
+  return <SampleFlow initial={latest} attemptsLeft={attemptsLeft} />;
 }

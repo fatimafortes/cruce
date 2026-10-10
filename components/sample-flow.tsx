@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AiSuggestion } from "@/components/ai-suggestion";
 import { AnswerForm } from "@/components/answer-form";
 import { CheckList } from "@/components/check-list";
 import { InventedBadge } from "@/components/invented-badge";
 import { ProofStates } from "@/components/proof-states";
+import { DAILY_LIMIT_MESSAGE } from "@/lib/attempt-limits";
 import type { RuleChecks } from "@/lib/checks";
 import { TASK1, TASK2 } from "@/lib/sample";
 import { proofStates } from "@/lib/states";
@@ -16,9 +18,13 @@ export type SampleAttempt = {
   emailAnswer: string;
   followupAnswer: string | null;
   ruleChecks: RuleChecks | null;
+  aiSuggestion: string | null;
 };
 
-async function post(url: string, body: unknown): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: string }> {
+async function post(
+  url: string,
+  body: unknown,
+): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: string; status: number }> {
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -26,25 +32,38 @@ async function post(url: string, body: unknown): Promise<{ ok: true; data: Recor
       body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return { ok: false, error: data.error ?? "Algo salió mal. Inténtalo de nuevo." };
+    if (!res.ok) return { ok: false, error: data.error ?? "Algo salió mal. Inténtalo de nuevo.", status: res.status };
     return { ok: true, data };
   } catch {
-    return { ok: false, error: "Sin conexión. Revisa tu internet e inténtalo de nuevo." };
+    return { ok: false, error: "Sin conexión. Revisa tu internet e inténtalo de nuevo.", status: 0 };
   }
 }
 
-export function SampleFlow({ initial }: { initial: SampleAttempt | null }) {
+export function SampleFlow({
+  initial,
+  attemptsLeft: initialLeft,
+}: {
+  initial: SampleAttempt | null;
+  // null = unknown; the database still enforces the limit.
+  attemptsLeft: number | null;
+}) {
   const [attempt, setAttempt] = useState<SampleAttempt | null>(initial);
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(initialLeft);
 
   async function sendTask1(emailAnswer: string) {
     const result = await post("/api/attempts", { emailAnswer });
-    if (!result.ok) return result.error;
+    if (!result.ok) {
+      if (result.status === 429) setAttemptsLeft(0);
+      return result.error;
+    }
     setAttempt({
       id: result.data.attemptId as string,
       emailAnswer,
       followupAnswer: null,
       ruleChecks: (result.data.ruleChecks as RuleChecks | null) ?? null,
+      aiSuggestion: null,
     });
+    setAttemptsLeft((left) => (left === null ? null : Math.max(0, left - 1)));
     return null;
   }
 
@@ -52,7 +71,12 @@ export function SampleFlow({ initial }: { initial: SampleAttempt | null }) {
     if (!attempt) return "No encontramos tu muestra.";
     const result = await post(`/api/attempts/${attempt.id}/followup`, { followupAnswer });
     if (!result.ok) return result.error;
-    setAttempt({ ...attempt, followupAnswer, ruleChecks: (result.data.ruleChecks as RuleChecks | null) ?? null });
+    setAttempt({
+      ...attempt,
+      followupAnswer,
+      ruleChecks: (result.data.ruleChecks as RuleChecks | null) ?? null,
+      aiSuggestion: (result.data.aiSuggestion as string | null) ?? null,
+    });
     return null;
   }
 
@@ -60,7 +84,13 @@ export function SampleFlow({ initial }: { initial: SampleAttempt | null }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {!attempt && (
+      {!attempt && attemptsLeft === 0 && (
+        <p role="status" className="rounded-2xl bg-white p-4 text-lg text-slate-700">
+          {DAILY_LIMIT_MESSAGE}
+        </p>
+      )}
+
+      {!attempt && attemptsLeft !== 0 && (
         <AnswerForm
           key="task1"
           id="task1"
@@ -111,6 +141,7 @@ export function SampleFlow({ initial }: { initial: SampleAttempt | null }) {
                 <p lang="en" className="mt-2 whitespace-pre-wrap text-slate-700">{attempt.followupAnswer}</p>
               </details>
               <CheckList title="Tu respuesta al cambio" checks={attempt.ruleChecks?.task2 ?? null} />
+              <AiSuggestion text={attempt.aiSuggestion} />
               <p className="rounded-2xl bg-white p-4 text-slate-700">
                 Listo, tu muestra quedó guardada en tu cuenta. Una persona revisará si explicaste el cambio.
               </p>

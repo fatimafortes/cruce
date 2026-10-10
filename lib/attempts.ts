@@ -8,6 +8,7 @@ export type AttemptView = {
   emailAnswer: string;
   followupAnswer: string | null;
   ruleChecks: RuleChecks | null;
+  aiSuggestion: string | null;
 };
 
 const checkSchema = z.object({ item: z.string(), passed: z.boolean(), detail: z.string() });
@@ -22,7 +23,7 @@ export async function getLatestAttempt(): Promise<AttemptView | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("cruce_attempts")
-    .select("id, email_answer, followup_answer, rule_checks")
+    .select("id, email_answer, followup_answer, rule_checks, ai_suggestion")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -37,5 +38,18 @@ export async function getLatestAttempt(): Promise<AttemptView | null> {
     emailAnswer: data.email_answer,
     followupAnswer: data.followup_answer,
     ruleChecks: checks.success ? checks.data : null,
+    aiSuggestion: data.ai_suggestion,
   };
+}
+
+// Attempts the worker can still start today (database limit, Monterrey day).
+// null if it can't be read: the form stays open and the database still enforces it.
+export async function getAttemptsLeftToday(): Promise<number | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("cruce_attempts_left_today");
+  if (error || typeof data !== "number") {
+    console.error("[attempts] left today failed", JSON.stringify({ code: error?.code, message: error?.message }));
+    return null;
+  }
+  return data;
 }

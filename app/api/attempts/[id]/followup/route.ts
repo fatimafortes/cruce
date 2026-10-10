@@ -3,11 +3,16 @@ import { jsonError, readJson } from "@/lib/api";
 import { getGoogleUser } from "@/lib/auth";
 import { runChecks } from "@/lib/checks";
 import { createClient } from "@/lib/supabase/server";
-import { saveRuleChecks } from "@/lib/supabase/admin";
+import { suggestFeedback } from "@/lib/gemini";
+import { saveAiSuggestion, saveRuleChecks } from "@/lib/supabase/admin";
 import { attemptIdSchema, firstMessage, task2BodySchema } from "@/lib/validation";
 
+// Gemini can take a few seconds; the call itself times out after 20.
+export const maxDuration = 30;
+
 // Task 2 (the changed constraint): save the follow-up once (RLS locks it after
-// that), then re-run all checks from the stored text and save them.
+// that), re-run all checks from the stored text, then ask Gemini for a labeled
+// suggestion. If Gemini fails, the attempt and the checks are still saved.
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/attempts/[id]/followup">) {
   const user = await getGoogleUser();
   if (!user) return jsonError(401, "Tu sesión terminó. Vuelve a entrar con Google.");
@@ -39,5 +44,19 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/attempt
   const checks = runChecks(data.email_answer, followupAnswer);
   const saved = await saveRuleChecks(data.id, checks);
 
-  return NextResponse.json({ attemptId: data.id, followupAnswer, ruleChecks: saved ? checks : null });
+  let aiSuggestion: string | null = null;
+  const ai = await suggestFeedback(data.email_answer, followupAnswer);
+  if (!ai.ok) {
+    // Reason code only: never the key or the worker's text.
+    console.error("[api/followup] AI suggestion unavailable", JSON.stringify({ reason: ai.reason, status: ai.status }));
+  } else if (await saveAiSuggestion(data.id, ai.text)) {
+    aiSuggestion = ai.text;
+  }
+
+  return NextResponse.json({
+    attemptId: data.id,
+    followupAnswer,
+    ruleChecks: saved ? checks : null,
+    aiSuggestion,
+  });
 }

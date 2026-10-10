@@ -3,7 +3,11 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
-    alias: { "@": fileURLToPath(new URL(".", import.meta.url)) },
+    alias: {
+      "@": fileURLToPath(new URL(".", import.meta.url)),
+      // "server-only" throws outside Next's server build; tests run server code directly.
+      "server-only": fileURLToPath(new URL("./test/stubs/server-only.ts", import.meta.url)),
+    },
   },
   test: {
     include: ["lib/**/*.test.ts"],
