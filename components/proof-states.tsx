@@ -8,10 +8,10 @@ const STYLE: Record<ProofState["status"], { box: string; dot: string }> = {
 };
 
 // The four states of the proof, in words (C1). States 3 and 4 are never decided here.
-export function ProofStates({ states }: { states: ProofState[] }) {
+export function ProofStates({ states, title = "TU PRUEBA (ES TUYA)" }: { states: ProofState[]; title?: string }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-bold tracking-wide text-slate-600">TU PRUEBA (ES TUYA)</h2>
+      <h2 className="text-sm font-bold tracking-wide text-slate-600">{title}</h2>
       <ul className="flex flex-col gap-2">
         {states.map((s) => (
           <li key={s.key} className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${STYLE[s.status].box}`}>

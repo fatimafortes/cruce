@@ -15,36 +15,51 @@ export type AttemptForStates = {
   review?: { explained: boolean } | null;
 };
 
-export function proofStates(attempt: AttemptForStates | null): ProofState[] {
-  const exists = Boolean(attempt?.emailAnswer);
+// What the states depend on. The public page (/p/[token]) gets exactly this
+// from the database, so the worker's pages and the public page always agree.
+export type StateSummary = {
+  exists: boolean;
+  numbersOk: boolean | null; // null = automatic checks unavailable
+  explained: boolean | null; // null = no review yet
+};
 
+export function summarize(attempt: AttemptForStates | null): StateSummary {
+  const exists = Boolean(attempt?.emailAnswer);
+  return {
+    exists,
+    numbersOk: exists && attempt?.ruleChecks ? allPassed(attempt.ruleChecks) : null,
+    explained: attempt?.review?.explained ?? null,
+  };
+}
+
+export function proofStates(attempt: AttemptForStates | null): ProofState[] {
+  return statesFromSummary(summarize(attempt));
+}
+
+export function statesFromSummary(summary: StateSummary): ProofState[] {
   let numbers: ProofState = { key: 2, label: "Números consistentes · pendiente", status: "pending" };
-  if (exists && attempt?.ruleChecks) {
-    numbers = allPassed(attempt.ruleChecks)
-      ? { key: 2, label: "Números consistentes", status: "done" }
-      : { key: 2, label: "Revisa los números marcados", status: "review" };
-  } else if (exists) {
+  if (summary.exists && summary.numbersOk === true) {
+    numbers = { key: 2, label: "Números consistentes", status: "done" };
+  } else if (summary.exists && summary.numbersOk === false) {
+    numbers = { key: 2, label: "Revisa los números marcados", status: "review" };
+  } else if (summary.exists) {
     numbers = { key: 2, label: "Números · revisión automática no disponible", status: "pending" };
   }
 
   return [
-    exists
+    summary.exists
       ? { key: 1, label: "Entregable existe", status: "done" }
       : { key: 1, label: "Entregable · todavía no lo envías", status: "pending" },
     numbers,
-    explainedState(attempt),
+    explainedState(summary.explained),
     { key: 4, label: "Empleador aceptó · ningún empleador se ha comprometido aún", status: "empty" },
   ];
 }
 
 // State 3 comes only from the reviewer's decision. "Todavía no" is shown
 // neutrally, like a flagged number: something to work on, not a grade.
-function explainedState(attempt: AttemptForStates | null): ProofState {
-  if (attempt?.review?.explained === true) {
-    return { key: 3, label: "Explicó el cambio", status: "done" };
-  }
-  if (attempt?.review?.explained === false) {
-    return { key: 3, label: "Explicó el cambio · todavía no", status: "review" };
-  }
+function explainedState(explained: boolean | null): ProofState {
+  if (explained === true) return { key: 3, label: "Explicó el cambio", status: "done" };
+  if (explained === false) return { key: 3, label: "Explicó el cambio · todavía no", status: "review" };
   return { key: 3, label: "Explicó el cambio · lo decide una persona", status: "pending" };
 }

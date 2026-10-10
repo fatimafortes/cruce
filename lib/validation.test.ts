@@ -80,3 +80,22 @@ describe("reviewBodySchema", () => {
     expect(parse({ attemptId: id, explained: true, note: "", reviewer_id: id })).not.toBeNull();
   });
 });
+
+describe("shareBodySchema", () => {
+  const id = "3f1c2b7e-8a4d-4c1e-9b2a-6d5e4f3a2b1c";
+  it("an empty display name becomes null; answers off by default must be sent explicitly", async () => {
+    const { shareBodySchema } = await import("@/lib/validation");
+    expect(shareBodySchema.parse({ attemptId: id, displayName: "   ", includeAnswers: false })).toEqual({
+      attemptId: id,
+      displayName: null,
+      includeAnswers: false,
+    });
+    expect(shareBodySchema.safeParse({ attemptId: id, displayName: "" }).success).toBe(false);
+  });
+  it("caps the display name at 60 characters and rejects extra fields", async () => {
+    const { shareBodySchema } = await import("@/lib/validation");
+    expect(shareBodySchema.safeParse({ attemptId: id, displayName: "a".repeat(60), includeAnswers: true }).success).toBe(true);
+    expect(shareBodySchema.safeParse({ attemptId: id, displayName: "a".repeat(61), includeAnswers: true }).success).toBe(false);
+    expect(shareBodySchema.safeParse({ attemptId: id, displayName: "", includeAnswers: false, revoked: false }).success).toBe(false);
+  });
+});

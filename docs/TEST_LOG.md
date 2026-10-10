@@ -216,3 +216,29 @@ The F3 RLS test still passes 36/36 with the new trigger in place. No rows left. 
 | Worker states: "Entregable existe"; "Revisa los números marcados" (correct: the weak follow-up lacked 250 / 150 / Nov 19); "Explicó el cambio · todavía no" in neutral style | ✅ |
 
 **Status: ✅ F6 done** on production. The good sample's "Explicó el cambio" ✓ isn't visible to the worker yet, because `/sample` shows only the latest attempt; the `/proof` page in F7 will show it.
+
+## F7 — worker-owned proof and share links, 2026-10-10
+
+**Unit tests (`npm test`): 105 of 105 pass** (9 new).
+
+| File | Covers |
+| --- | --- |
+| `lib/states.test.ts` | The public page's states (from the database summary) equal the worker's states for every case: no attempt, all passed, flagged, checks unavailable, Sí, Todavía no |
+| `lib/validation.test.ts` | Share body: empty display name → null; display name ≤ 60; `includeAnswers` required; extra fields rejected |
+| `lib/proof-pdf.test.ts` | The PDF has the invented-data label, the four states in words, both labels ("no es una calificación", "Sugerencia de IA — no es una decisión"), the answers, checks and reviewer note; no email, user id or score; emoji/✓ replaced, Spanish kept; file named by date |
+
+**SQL, local Postgres (PGlite) with all three migrations:**
+- `cruce_proof_public_test.sql`: **14 of 14 PASS**. A plain link shows states and date only; a link with name and "Incluir mis respuestas" shows both answers; a flagged attempt gives `numbers_ok=false`; the function has no user_id/email/AI/note/id columns, and no AI text, note or email appears in any returned value; unknown and malformed tokens give no rows; signed-out visitors can't list links; display name > 60 is rejected; a link's settings can't be changed after creation; B can't create a link for A's attempt; **revoked link → no rows** (F7 acceptance); the other link still works.
+- The RLS test (36/36) and the daily-limit test (12/12) still pass alongside it. No rows left.
+- Mutation check: answers always returned → #05 fails; revoked links still returned → #13 fails.
+
+**Local server (production build):**
+- `/p/<random 64-hex token>` and `/p/not-a-token` → "Esta prueba ya no se comparte."
+- Response `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate`; `<meta name="robots" content="noindex, nofollow">`; `<meta name="referrer" content="no-referrer">`.
+- Signed out: `/proof` → 307; `POST /api/proof-links` and `POST /api/proof-links/<id>/revoke` → 401.
+
+**Browser bundle:** neither real key present; jsPDF only in a separate 408 KB chunk, loaded on "Descargar PDF".
+
+**Supabase run (owner):** _pending_: migration `20261010230000_cruce_proof_public.sql`, then `cruce_proof_public_test.sql`.
+
+**Manual run (owner):** _pending_: create link → open in a private window → works; with and without "Incluir mis respuestas" and a display name; revoke → reload → "Esta prueba ya no se comparte."; PDF on a phone.

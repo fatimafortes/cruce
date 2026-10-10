@@ -69,3 +69,17 @@ export const reviewBodySchema = z
       });
     }
   });
+
+// Share link (F7): the worker decides what it shows (C2).
+export const DISPLAY_NAME_MAX = 60;
+
+export const shareBodySchema = z.strictObject({
+  attemptId: z.uuid({ error: "No encontramos esta muestra." }),
+  displayName: z
+    .string()
+    .max(DISPLAY_NAME_MAX * 4)
+    .trim()
+    .refine((name) => charCount(name) <= DISPLAY_NAME_MAX, { error: `Máximo ${DISPLAY_NAME_MAX} caracteres.` })
+    .transform((name) => (name === "" ? null : name)),
+  includeAnswers: z.boolean(),
+});

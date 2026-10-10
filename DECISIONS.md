@@ -152,6 +152,21 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 | The worker sees the decision and the note on `/sample` under "Nota de la persona revisora", without the reviewer's name. The full `/proof` page is F7 and will reuse the same states | F6 done-when ("a review appears on the worker's proof"). |
 | No migration: F3 already created `cruce_reviews`, its policies and the queue function | Its RLS rules are covered by the F3 test (#14, #24–#26, #29, #33). |
 
+## 2026-10-10 — F7: worker-owned proof and share links
+
+| Decision | Why |
+| --- | --- |
+| `/proof` lists **all** of the worker's attempts, newest first, each with its four states, details (answers, checks, labeled AI suggestion, reviewer note), PDF and sharing | Owner's decision; closes the F6 gap (only the latest attempt was visible). |
+| A share link shows the four states and the date **always**; an optional display name (≤ 60, empty by default) and, only if the worker ticks **"Incluir mis respuestas"** (off by default), her two answers. **Never** the AI suggestion or the reviewer's note | Owner's decision: C2 (the worker decides what to share) without turning the proof into a gate (C1). |
+| Display name and "include answers" are stored **with the link** (migration `20261010230000_cruce_proof_public.sql`) and can't be changed after creation; revoke and create a new link to change them | Revoking removes the name and answers from public view; a link can't silently start showing more. |
+| Public reads only through `cruce_proof_by_token()` (security definer, callable by signed-out visitors). It returns the date, `numbers_ok`, `review_explained`, the display name and, only with "include answers", the two answers. No user id, email, AI suggestion, note or row ids. Only well-formed 64-hex tokens are looked up | Signed-out visitors still have no access to any `cruce_` table. |
+| A revoked link and an unknown token give the same page: "Esta prueba ya no se comparte." | Nobody can probe which tokens exist. |
+| `/p/[token]` is rendered per request (`connection()`), sent with `no-store`, marked `noindex, nofollow`, and `referrer: no-referrer` | A revoked link stops working immediately; the token isn't indexed or leaked to other sites. |
+| States on every page come from one function (`statesFromSummary`): the worker's pages summarize the attempt, the public page gets the same summary from the database | The public page can never say something different from `/proof` (unit test compares them for every case). |
+| One live link per attempt; "Crear enlace" returns the existing one if there is one. Revoke asks for confirmation inline (no browser dialog) and is one-way | Simple to manage on a phone. |
+| PDF generated in the browser with **jsPDF 4.2.1**, loaded only when "Descargar PDF" is tapped (separate 408 KB chunk). Content built by a pure, tested function: date, states in words, checks, both answers, labeled AI suggestion, reviewer note; no name or email | Owner's decision; the worker keeps a copy outside Cruce (C2). jsPDF's built-in fonts cover Spanish; characters they can't draw (emoji, ✓) become "?". |
+| Link creation and revoking run **as the worker** (RLS), no secret key | Least privilege. |
+
 ## Known risks
 
 | Risk | Status and mitigation |
@@ -160,4 +175,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-F6 is done (production, two accounts). Next: F7: the worker-owned proof record (`/proof`, PDF, share link, revoke, public `/p/[token]`).
+Finish F7: run `20261010230000_cruce_proof_public.sql` and `cruce_proof_public_test.sql` in the SQL Editor, then the share → private window → revoke test and the PDF on a phone (`docs/TEST_LOG.md`, F7). Then F8: Gate 1 page.

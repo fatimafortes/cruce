@@ -182,6 +182,9 @@ export function SampleFlow({
             : null,
         )}
       />
+      <Link href="/proof" className="text-center font-semibold text-blue-700 underline">
+        Ver mi prueba
+      </Link>
       <p className="text-center text-sm text-slate-500">
         Sin CV, sin RFC. Tu empleador actual nunca se entera. <Link href="/" className="underline">Inicio</Link>
       </p>

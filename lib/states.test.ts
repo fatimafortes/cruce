@@ -65,3 +65,36 @@ describe("state 3 (human review, F6)", () => {
     expect(states.map((s) => s.key)).toEqual([1, 2, 3, 4]);
   });
 });
+
+describe("statesFromSummary (public page, F7)", () => {
+  it("gives exactly the same states as the full attempt", async () => {
+    const { statesFromSummary, summarize } = await import("@/lib/states");
+    const cases = [
+      null,
+      { emailAnswer: OK, followupAnswer: null, ruleChecks: runChecks(OK, null) },
+      { emailAnswer: OK.replace("400", "500"), followupAnswer: null, ruleChecks: runChecks(OK.replace("400", "500"), null) },
+      { emailAnswer: OK, followupAnswer: null, ruleChecks: null },
+      { emailAnswer: OK, followupAnswer: "x".repeat(40), ruleChecks: runChecks(OK, null), review: { explained: true } },
+      { emailAnswer: OK, followupAnswer: "x".repeat(40), ruleChecks: runChecks(OK, null), review: { explained: false } },
+    ];
+    for (const attempt of cases) {
+      expect(statesFromSummary(summarize(attempt))).toEqual(proofStates(attempt));
+    }
+  });
+
+  it("maps the database summary (numbers_ok / review_explained) to the same words", async () => {
+    const { statesFromSummary } = await import("@/lib/states");
+    expect(statesFromSummary({ exists: true, numbersOk: true, explained: true }).map((s) => s.label)).toEqual([
+      "Entregable existe",
+      "Números consistentes",
+      "Explicó el cambio",
+      "Empleador aceptó · ningún empleador se ha comprometido aún",
+    ]);
+    expect(statesFromSummary({ exists: true, numbersOk: false, explained: null }).map((s) => s.status)).toEqual([
+      "done",
+      "review",
+      "pending",
+      "empty",
+    ]);
+  });
+});
