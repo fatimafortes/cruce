@@ -283,7 +283,9 @@ Against the old schema, 5 of these fail (including the exact payload and "share,
 
 **Test (`lib/proof-pdf.test.ts`):** the date line is "…05:05 p.m. Esta prueba…" for a p.m. date and "…17:05. Esta prueba…" for a 24-hour date; the whole PDF text contains no "..". Full suite: **118 of 118**.
 
-**Retest (owner):** _pending_: download a PDF after the push and check the date line.
+**Retest (owner), production:** the PDF date line reads "…05:21 p.m. Esta prueba es tuya…", with a single period ✅.
+
+**Status: ✅ Resolved.**
 
 ## F8 — Gate 1 page, 2026-10-10
 
@@ -301,4 +303,12 @@ Against the old schema, 5 of these fail (including the exact payload and "share,
 
 **Database rules:** F3 RLS test in Supabase (36/36): non-reviewer can't add a snapshot (#07), signed-out visitors can read snapshots (#19), a reviewer adds one (#27).
 
-**Manual run (owner):** _pending_: as reviewer, add a real snapshot → `/gate` shows the table, the weekly range and "Estimación anual: pendiente…" (**F8 done-when**); in a private window, the same numbers and no form.
+**Manual run on production (owner), https://cruce-wheat.vercel.app/gate, 2026-10-10:**
+
+| Step | Result |
+| --- | --- |
+| As reviewer, saved the first real snapshot (Computrabajo, 7 in Monterrey, 0 plant customer-service) → "Foto guardada. La tabla ya está actualizada." and the table updated right away (**F8 done-when**) | ✅ |
+| Page shows "Promedio semanal: 0 … (1 semana de datos)", "Estimación anual: pendiente (falta la duración típica de una vacante)", "Semana 2026-W41: 0 (1 fuente)", the aggregate-only note and the method | ✅ |
+| Private window (signed out): the same numbers, no form | ✅ |
+
+**Status: ✅ F8 done** on production (Deploy 2). The snapshot's finding is recorded in `DECISIONS.md` → "Gate 1 findings".

@@ -206,4 +206,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-Finish F8 by hand: add a real snapshot as reviewer and see `/gate` update (`docs/TEST_LOG.md`, F8); confirm Bug 4 in a downloaded PDF. Then the end-of-build work: the full mechanical pass and the persona test from the packet §12, recorded in `docs/TEST_LOG.md`, with the security-floor evidence.
+All eight features (F1–F8) are done on production, and Bugs 1–4 are resolved. Next: the end-of-build test plan from the packet §12 (mechanical pass, persona test, security-floor evidence), recorded in `docs/TEST_LOG.md`. Keep adding weekly Gate 1 snapshots from 1–2 more sources.
