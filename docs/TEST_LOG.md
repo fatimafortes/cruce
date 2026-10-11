@@ -339,11 +339,13 @@ Run against the current production version (https://cruce-wheat.vercel.app, all 
 
 ### Security floor (§13), with evidence
 
+**All 5 items ✅ with evidence** (the last open item, the RLS query in Supabase, confirmed 2026-10-11).
+
 | Item | Evidence |
 | --- | --- |
 | **No secrets in code or repo** (Vercel env vars only) | Test 11 (full history). `.gitignore` ignores every `.env*` except `.env.example`, which has empty values. **Production browser code**, downloaded now from cruce-wheat.vercel.app (11 JS files, 936 KB, loaded by `/`, `/gate`, `/p/…`): the real secret key and Gemini key appear in **0** files. The publishable key appears in 1, as designed: it's public, and RLS protects the data. No Gemini URL, system prompt or `service_role` text. Gemini runs only in server routes (`lib/gemini.ts`, `server-only`; a test build with a client import fails). Secret key in one server-only module with narrow functions. Vercel: `SUPABASE_SECRET_KEY` and `GEMINI_API_KEY` Production only, Sensitive/Secret. Known risk: an old Gemini key, used by another project, was pasted in the chat (`DECISIONS.md` → Known risks); it was never in the repo, `.env.local` or Vercel |
 | **Sign in with Google before anything is stored** | App: `getGoogleUser()` counts only Google identities; anonymous and email-only sessions are signed out; every API route returns 401 without one. Database: every policy requires `cruce_is_google_user()`; RLS test #16 (anonymous) and #17 (email-only) can't create attempts. The proxy and each protected page redirect signed-out visitors (test 1) |
-| **RLS on every table with user data** | All 6 `cruce_` tables have RLS on; worker data is reachable only by its owner, reviewers read through `cruce_review_queue()` (no user id), and public reads go only through `cruce_proof_by_token()`. Supabase runs: RLS 36/36, daily limit 12/12, proof links 14/14. Table-by-table check: `supabase/checks/cruce_rls_evidence.sql` (read-only). Expected output (local Postgres): attempts RLS on / 4 policies, daily_usage on / 0 (no API access at all), gate_snapshots on / 2 (the only table signed-out visitors can read), proof_links on / 3, reviewers on / 1, reviews on / 3. Supabase output: _pending, owner runs the query_ |
+| **RLS on every table with user data** | All 6 `cruce_` tables have RLS on; worker data is reachable only by its owner, reviewers read through `cruce_review_queue()` (no user id), and public reads go only through `cruce_proof_by_token()`. Supabase runs: RLS 36/36, daily limit 12/12, proof links 14/14. Table-by-table check: `supabase/checks/cruce_rls_evidence.sql` (read-only). Expected output (local Postgres): attempts RLS on / 4 policies, daily_usage on / 0 (no API access at all), gate_snapshots on / 2 (the only table signed-out visitors can read), proof_links on / 3, reviewers on / 1, reviews on / 3. **Supabase output (owner, 2026-10-11): matched exactly.** `rls_on = true` for all 6 tables; policies 4/0/2/3/1/3; signed-out visitors can read only `cruce_gate_snapshots`; `cruce_daily_usage` has no API access ✅ |
 | **zod validation and length limits on every form and route; worker text wrapped in delimiters for the AI** | Every API route, generated from the code: `/api/attempts` (task1BodySchema), `/api/attempts/[id]/followup` (attemptIdSchema + task2BodySchema), `/api/reviews` (reviewBodySchema), `/api/proof-links` (shareBodySchema), `/api/proof-links/[id]/revoke` (attemptIdSchema), `/api/gate-snapshots` (gateSnapshotBodySchema). All check the Google session, and the reviewer routes also check reviewer status; bodies are capped at 32 KB before parsing. The same schemas run in the forms. Round-trip tests prove the server accepts what the forms send (Bug 3). Limits are repeated in the database (CHECK constraints). Worker text goes to Gemini only between `<<<WORKER_ANSWER>>>` / `<<<END_WORKER_ANSWER>>>`, with `<<<`/`>>>` stripped from it first (`lib/coach.test.ts`) |
 | **Only invented data in seeds and demos, labeled on screen** | One source of order data: `lib/sample.ts` (Planta Demo Norte (ficticia), Midwest Trailer Co. (ficticio)). The label "DATOS INVENTADOS · PLANTA FICTICIA" appears on `/sample` (twice: ERP card and the change), `/proof`, every public `/p/…` page and every PDF (unit test). No seed data; test scripts create temporary users on `example.invalid` and roll everything back. AI output always labeled "Sugerencia de IA — no es una decisión" |
 
@@ -380,4 +382,13 @@ Unchanged: the four-state logic, the checks, the database, the PDF title (her ow
 
 **Local production build:** the public link page has `<title>Práctica de servicio al cliente · Cruce</title>` and its own neutral `<meta name="description">`, with 0 occurrences of "call center", "prueba de trabajo", "empleador" or "vacante" in its HTML; the landing footer link reads "Datos del proyecto".
 
-**Retest (owner):** _pending_ after the push. Same screens on the phone: `/sample` shows 3 states; the public link title and preview are neutral and show 3 states; `/proof` shows the new state 4 wording.
+**Retest on production (owner, phone, after `ace5235`, 2026-10-11):**
+
+| Check | Result |
+| --- | --- |
+| `/sample` shows 3 states | ✅ |
+| `/proof` state 4 reads "Una planta aceptó esta prueba · ninguna planta se ha comprometido aún" | ✅ |
+| Share link pasted in WhatsApp: neutral preview, no "call center" | ✅ |
+| Link opened: "Práctica de servicio al cliente", 3 states | ✅ |
+
+**Status: ✅ Persona-test fix done** on production (Deploy 4).

@@ -226,4 +226,4 @@ Full records in `docs/TEST_LOG.md`.
 
 ## Tomorrow's first move
 
-Push the persona fix (Deploy 4) and retest those screens on the phone; paste the RLS evidence query output from Supabase into `docs/TEST_LOG.md` §13. Keep adding weekly Gate 1 snapshots from 1–2 more sources.
+The build is complete: F1–F8 on production; mechanical pass 11/11; persona-test fix on production; security floor 5/5 with evidence; Bugs 1–4 resolved (`docs/TEST_LOG.md`). Ongoing: weekly Gate 1 snapshots from 1–2 more sources. If they stay near zero, decide in the packet whether to widen the corridor. Known risk: the old Gemini key (see above).
