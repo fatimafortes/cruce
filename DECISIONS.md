@@ -181,6 +181,17 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 | No edit or delete in the app; mistakes are fixed in the Supabase SQL Editor (said on the form) | Owner's decision. |
 | Landing page footer links to `/gate` ("Conteo de vacantes en Monterrey") | So the professor and visitors can find it. |
 
+## Bugs found, fixed and redeployed
+
+Full records in `docs/TEST_LOG.md`.
+
+| Bug | Found | Cause | Fix | Status |
+| --- | --- | --- | --- | --- |
+| 1. Google sign-in always ended at `/?error=auth` on production | F2 manual test | Vercel had the legacy anon JWT in `NEXT_PUBLIC_SUPABASE_ANON_KEY`; some attempts started on deployment URLs | Publishable key in Vercel; proxy sends production traffic to `cruce-wheat.vercel.app`; PKCE flow id passed to the exchange; diagnostic logging (`c9b4ffa`, `c0c1de8`) | ✅ production |
+| 2. "unstable value `Date.now()`" on `/sample` | F4 manual test | With Partial Prefetching, `cookies()` resolves during the App Shell prerender and supabase-js reads the clock | `getGoogleUser()` awaits `connection()` first (`a216efe`) | ✅ localhost + production |
+| 3. Share link with an empty name failed ("expected string, received null") | F7 manual test | The form sent the schema's own output (`null`), which the schema didn't accept | `displayName` accepts null/missing/empty; round-trip tests for every request schema (`636206a`) | ✅ production |
+| 4. "p.m.." in the PDF date line | F7 manual test (phone) | The es-MX date already ends in "p.m." | One period via `sentence()`, with a test (`53f89e3`) | ✅ production |
+
 ## Gate 1 findings
 
 ### 2026-10-10 — first snapshot: the market looks very small
@@ -206,4 +217,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-All eight features (F1–F8) are done on production, and Bugs 1–4 are resolved. Next: the end-of-build test plan from the packet §12 (mechanical pass, persona test, security-floor evidence), recorded in `docs/TEST_LOG.md`. Keep adding weekly Gate 1 snapshots from 1–2 more sources.
+Final pass recorded in `docs/TEST_LOG.md`. Still open: tests 2 and 5 once on production (second account); the RLS evidence query in Supabase; the persona test (owner, separate chat) and the fix for its worst hesitation. Keep adding weekly Gate 1 snapshots from 1–2 more sources.

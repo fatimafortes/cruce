@@ -141,7 +141,7 @@ If this slice works, Cruce becomes the crossing layer for Mexico's nearshoring c
 ## 11. Fact-checks owned by me (from the Blueprint)
 
 1. **Plan México deduction: before or after the hire?** After only. The additional deduction of 25% of the increase in training spending applies to training given to the taxpayer's "trabajadores activos registrados ante el IMSS," for 2025–2030, with a global cap of MXN 1,500 million. It cannot fund samples before the hire. ([Deloitte Flash Fiscal 05-2025](https://www.deloitte.com/content/dam/assets-zone4/latam/es/docs/services/tax/2025/flash-fiscal-05-2025-es.pdf), [PwC](https://www.pwc.com/mx/es/impuestos/novedades-fiscales/decreto-del-plan-mexico.html))
-2. **Gate 1: plant customer-service openings in Monterrey over a year.** No public archive of a year of postings exists, so the method is: (a) weekly snapshots from now to the module close on 2–3 job sites with a fixed query (customer service + manufacturing/plant + Monterrey metro), counting only plant roles and excluding call centers; (b) estimate a yearly figure from the average weekly count and the typical posting lifetime; (c) state the result as a range with its method. Results go into `gate_snapshots` and appear on the Gate page. **Result so far:** [fill in].
+2. **Gate 1: plant customer-service openings in Monterrey over a year.** No public archive of a year of postings exists, so the method is: (a) weekly snapshots from now to the module close on 2–3 job sites with a fixed query (customer service + manufacturing/plant + Monterrey metro), counting only plant roles and excluding call centers; (b) estimate a yearly figure from the average weekly count and the typical posting lifetime; (c) state the result as a range with its method. Results go into `gate_snapshots` and appear on the Gate page. **Result so far** *(updated after the build, 2026-10-10)*: first weekly snapshot, Computrabajo, query "servicio al cliente manufactura · Monterrey, N.L.": 7 postings located in Monterrey (the site's headline "52 ofertas" included remote/nationwide jobs), **0** plant customer-service roles (1 doubtful, not counted). With this query the market looks very small, which supports the Adversary's Gate 1 concern. Preliminary: one source, one week; the method calls for 2–3 sources weekly until the module closes. Live numbers and method: https://cruce-wheat.vercel.app/gate; counting rule and caveats in `DECISIONS.md` → "Gate 1 findings".
 
 ## 12. Test plan
 
@@ -167,8 +167,10 @@ At least one bug found, fixed and redeployed, logged in `DECISIONS.md`.
 
 ## 13. Security floor checklist
 
-- [ ] No secrets in code or repo (Vercel env vars only)
-- [ ] Sign in with Google before anything is stored
-- [ ] RLS on every table with user data
-- [ ] zod validation and length limits on every form and route; worker text is wrapped in delimiters before it reaches the prompt
-- [ ] Only invented data in seeds and demos, labeled on screen
+*Updated after the build, 2026-10-10.*
+
+- [x] No secrets in code or repo (Vercel env vars only). Evidence: full-history scan of all 22 commits, 0 key hits; production JS checked against the real keys, 0 hits; keys only in Vercel (Production, Sensitive) and `.env.local`. `docs/TEST_LOG.md` → Final test pass, test 11 and §13.
+- [x] Sign in with Google before anything is stored. Evidence: every API route returns 401 without a Google session; every RLS policy requires a Google identity (RLS test #16 anonymous and #17 email-only rejected).
+- [x] RLS on every table with user data. Evidence: RLS on all 6 `cruce_` tables; Supabase SQL tests RLS 36/36, daily limit 12/12, proof links 14/14 (incl. worker A cannot read worker B); table-by-table query `supabase/checks/cruce_rls_evidence.sql`.
+- [x] zod validation and length limits on every form and route; worker text is wrapped in delimiters before it reaches the prompt. Evidence: route → schema table in `docs/TEST_LOG.md`; the same schemas in the forms with round-trip tests; DB CHECK limits; `<<<WORKER_ANSWER>>>` delimiters with look-alikes stripped (`lib/coach.test.ts`).
+- [x] Only invented data in seeds and demos, labeled on screen. Evidence: one data source `lib/sample.ts`; "DATOS INVENTADOS · PLANTA FICTICIA" on `/sample`, `/proof`, public `/p/…` and the PDF; no seed data.
