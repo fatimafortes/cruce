@@ -175,4 +175,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-Finish F7: run `20261010230000_cruce_proof_public.sql` and `cruce_proof_public_test.sql` in the SQL Editor, then the share → private window → revoke test and the PDF on a phone (`docs/TEST_LOG.md`, F7). Then F8: Gate 1 page.
+F7 is done on production (Bug 3 resolved; Bug 4, a cosmetic PDF fix, needs a quick look after the push). Next: F8, the Gate 1 page (`/gate`).

@@ -39,6 +39,11 @@ export function pdfSafe(text: string): string {
     .join("");
 }
 
+// Ends with exactly one period: the es-MX date already ends in "p.m." (owner report).
+export function sentence(text: string): string {
+  return text.endsWith(".") ? text : `${text}.`;
+}
+
 function checkLines(checks: Check[]): PdfBlock[] {
   return checks.map((c) => ({ kind: "text", text: `${c.passed ? "Encontrado" : "Revisa"} · ${c.item}: ${c.detail}` }));
 }
@@ -47,7 +52,7 @@ export function proofPdfBlocks(proof: ProofForPdf): PdfBlock[] {
   const blocks: PdfBlock[] = [
     { kind: "title", text: "Cruce · Prueba de trabajo" },
     { kind: "label", text: INVENTED_LABEL },
-    { kind: "small", text: `Muestra del ${proof.dateLabel}. Esta prueba es tuya: no es una calificación ni un examen.` },
+    { kind: "small", text: `${sentence(`Muestra del ${proof.dateLabel}`)} Esta prueba es tuya: no es una calificación ni un examen.` },
     { kind: "heading", text: "Estados" },
     ...proof.states.map((s): PdfBlock => ({ kind: "text", text: `${s.key}. ${s.label} (${STATUS_WORD[s.status]})` })),
     { kind: "heading", text: "Revisión automática de números (no es una calificación)" },

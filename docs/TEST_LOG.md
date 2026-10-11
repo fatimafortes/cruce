@@ -241,7 +241,16 @@ The F3 RLS test still passes 36/36 with the new trigger in place. No rows left. 
 
 **Supabase run (owner), 2026-10-10:** migration `20261010230000_cruce_proof_public.sql` → "Success. No rows returned" ✅; `cruce_proof_public_test.sql` → **ALL PASS — 14 of 14** ✅.
 
-**Manual run (owner):** found Bug 3 (below) on the first try. Retest after the fix: _pending_. Steps: create link → open in a private window → works; with and without "Incluir mis respuestas" and a display name; revoke → reload → "Esta prueba ya no se comparte."; PDF on a phone.
+**Manual run (owner):** the first try found Bug 3 (below). Production retest after `636206a` (https://cruce-wheat.vercel.app/proof, private window as the visitor):
+
+| Step | Result |
+| --- | --- |
+| A. Link with **no name**, "Incluir mis respuestas" unchecked → link created; the private window shows only the four states, the date and the "no es una calificación" footer | ✅ (Bug 3 resolved) |
+| B. **Revocar enlace** → reload → "Esta prueba ya no se comparte." (**F7 done-when**) | ✅ |
+| C. New link with a display name + "Incluir mis respuestas" → name and both answers shown; no AI suggestion, no reviewer note | ✅ |
+| D. **Descargar PDF** on a phone → accents correct (Explicó, Números, aún, envío, teléfono) | ✅, with a cosmetic issue: Bug 4 |
+
+**Status: ✅ F7 done** on production.
 
 ## Bug 3 — share link with an empty display name fails (F7), 2026-10-10
 
@@ -260,4 +269,18 @@ The F3 RLS test still passes 36/36 with the new trigger in place. No rows left. 
 
 Against the old schema, 5 of these fail (including the exact payload and "share, no name"); with the fix, all pass. Full suite: **117 of 117**.
 
-**Retest (owner):** _pending_ after push.
+**Retest (owner), production after `636206a`:** a link with no name and answers unchecked is created and works in a private window ✅.
+
+**Status: ✅ Resolved.**
+
+## Bug 4 — "p.m.." in the PDF date line (F7, cosmetic), 2026-10-10
+
+**Found by:** owner, opening the downloaded PDF on a phone. The date line ended with a double period: "…05:05 p.m.. Esta prueba es tuya…".
+
+**Cause:** `lib/proof-pdf.ts` wrote `Muestra del ${dateLabel}.`, but the es-MX date format already ends in "p.m." (e.g. "10 de octubre de 2026 a las 05:05 p.m."). Only place affected: the screens don't add a period after the date.
+
+**Fix:** a small `sentence()` helper ends the line with exactly one period, whether or not the date already ends in one.
+
+**Test (`lib/proof-pdf.test.ts`):** the date line is "…05:05 p.m. Esta prueba…" for a p.m. date and "…17:05. Esta prueba…" for a 24-hour date; the whole PDF text contains no "..". Full suite: **118 of 118**.
+
+**Retest (owner):** _pending_: download a PDF after the push and check the date line.

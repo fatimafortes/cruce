@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { runChecks } from "@/lib/checks";
-import { pdfSafe, proofPdfBlocks, proofPdfFileName } from "@/lib/proof-pdf";
+import { pdfSafe, proofPdfBlocks, proofPdfFileName, sentence } from "@/lib/proof-pdf";
 import { proofStates } from "@/lib/states";
 
 const EMAIL = "Hi Sarah, PO-48213, part BRK-2207-A: we shipped 800 of 1,200; the other 400 ship Nov 14. Thanks 👍";
@@ -45,5 +45,19 @@ describe("proofPdfBlocks", () => {
 
   it("names the file by date", () => {
     expect(proofPdfFileName("2026-10-10T23:05:00Z")).toBe("cruce-prueba-2026-10-10.pdf");
+  });
+
+  it("ends the date line with one period, also after \"p.m.\" (no \"p.m..\")", () => {
+    const line = (dateLabel: string) =>
+      proofPdfBlocks({ dateLabel, states: proofStates(attempt), ruleChecks: null, emailAnswer: EMAIL, followupAnswer: null, aiSuggestion: null, review: null })
+        .find((b) => b.text.startsWith("Muestra del"))?.text;
+    expect(line("10 de octubre de 2026 a las 05:05 p.m.")).toBe(
+      "Muestra del 10 de octubre de 2026 a las 05:05 p.m. Esta prueba es tuya: no es una calificación ni un examen.",
+    );
+    expect(line("10 de octubre de 2026, 17:05")).toBe(
+      "Muestra del 10 de octubre de 2026, 17:05. Esta prueba es tuya: no es una calificación ni un examen.",
+    );
+    expect(sentence("a.")).toBe("a.");
+    expect(all).not.toContain("..");
   });
 });
