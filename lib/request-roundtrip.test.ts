@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 import {
+  gateSnapshotBodySchema,
   reviewBodySchema,
   shareBodySchema,
   task1BodySchema,
@@ -60,5 +61,46 @@ describe("every request schema survives browser parse → JSON → server parse"
     const { sent, onServer } = browserThenServer(schema as z.ZodType, formValues);
     expect(onServer.success).toBe(true);
     expect(onServer.data).toEqual(sent);
+  });
+});
+
+describe("gate snapshot (F8)", () => {
+  const ok = {
+    snapshotDate: "2026-10-05",
+    source: "OCC Mundial",
+    query: "servicio al cliente planta Monterrey",
+    totalCount: 40,
+    plantCsCount: 6,
+    notes: "",
+  };
+  const message = (body: unknown) => {
+    const r = gateSnapshotBodySchema.safeParse(body);
+    return r.success ? null : r.error.issues[0].message;
+  };
+
+  it("survives browser parse → JSON → server parse (empty notes → null)", () => {
+    const { sent, onServer } = browserThenServer(gateSnapshotBodySchema as z.ZodType, ok);
+    expect(sent.notes).toBeNull();
+    expect(onServer.success).toBe(true);
+  });
+
+  it("rejects a future date, plant > total, negatives and decimals", () => {
+    expect(message({ ...ok, snapshotDate: "2999-01-01" })).toBe("La fecha no puede ser futura.");
+    expect(message({ ...ok, plantCsCount: 41 })).toBe("El número en planta no puede ser mayor que el total.");
+    expect(message({ ...ok, totalCount: -1 })).toBe("El total de resultados no puede ser negativo.");
+    expect(message({ ...ok, plantCsCount: 2.5 })).toBe("Escribe el número en planta como número entero.");
+  });
+
+  it.each([
+    ["source", "https://www.occ.com.mx/empleos/123"],
+    ["notes", "ver www.indeed.com/viewjob?jk=abc"],
+    ["query", "http://example.com"],
+  ])("rejects a link in %s (no links to postings)", (field, value) => {
+    expect(message({ ...ok, [field]: value })).toBe("No pegues enlaces: aquí solo van números y el nombre de la fuente.");
+  });
+
+  it("requires source and query", () => {
+    expect(message({ ...ok, source: "  " })).toBe("Escribe la fuente.");
+    expect(message({ ...ok, query: "" })).toBe("Escribe la búsqueda que usaste.");
   });
 });

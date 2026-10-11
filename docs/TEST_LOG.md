@@ -284,3 +284,21 @@ Against the old schema, 5 of these fail (including the exact payload and "share,
 **Test (`lib/proof-pdf.test.ts`):** the date line is "…05:05 p.m. Esta prueba…" for a p.m. date and "…17:05. Esta prueba…" for a 24-hour date; the whole PDF text contains no "..". Full suite: **118 of 118**.
 
 **Retest (owner):** _pending_: download a PDF after the push and check the date line.
+
+## F8 — Gate 1 page, 2026-10-10
+
+**Unit tests (`npm test`): 136 of 136 pass** (18 new).
+
+| File | Covers |
+| --- | --- |
+| `lib/gate.test.ts` | ISO weeks (Monday/Sunday, year boundaries); no snapshots → no numbers; one week with three sources → low = highest source (6), high = sum (11); a source with two snapshots in a week uses its latest (case/space-insensitive); averages over weeks, newest first; **yearly estimate stays pending** while the posting lifetime is unset, and the formula gives a range once set; es-MX formatting |
+| `lib/request-roundtrip.test.ts` | Gate snapshot survives browser parse → JSON → server parse (empty notes → null); future date, plant > total, negative and decimal counts rejected with Spanish messages; a link in source, query or notes rejected; source and query required |
+
+**Local server (production build, signed out):**
+- `/gate` → 200, shows "Sin datos todavía" (the real project has no snapshots yet), the method, no reviewer form, no links to job sites.
+- The landing page has the `/gate` link.
+- `POST /api/gate-snapshots` → 401.
+
+**Database rules:** F3 RLS test in Supabase (36/36): non-reviewer can't add a snapshot (#07), signed-out visitors can read snapshots (#19), a reviewer adds one (#27).
+
+**Manual run (owner):** _pending_: as reviewer, add a real snapshot → `/gate` shows the table, the weekly range and "Estimación anual: pendiente…" (**F8 done-when**); in a private window, the same numbers and no form.

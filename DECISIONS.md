@@ -167,6 +167,20 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 | PDF generated in the browser with **jsPDF 4.2.1**, loaded only when "Descargar PDF" is tapped (separate 408 KB chunk). Content built by a pure, tested function: date, states in words, checks, both answers, labeled AI suggestion, reviewer note; no name or email | Owner's decision; the worker keeps a copy outside Cruce (C2). jsPDF's built-in fonts cover Spanish; characters they can't draw (emoji, ✓) become "?". |
 | Link creation and revoking run **as the worker** (RLS), no secret key | Least privilege. |
 
+## 2026-10-10 — F8: Gate 1 page
+
+| Decision | Why |
+| --- | --- |
+| `/gate` is public (no sign-in): the method (packet §11.2, in Spanish), the average weekly count, the yearly estimate, a per-week breakdown and the snapshot table. Aggregate numbers only; no postings, companies, people or links to apply | As in the prompt. |
+| **Average weekly count as a range.** Per ISO week: low = the highest single source, high = the sum across sources; both averaged over the weeks. If a source has more than one snapshot in a week, its latest counts (source names compared ignoring case and spaces) | Owner's decision. The same posting can appear on several sites, so the sum alone could double count; the packet asks for a range. |
+| **Yearly estimate: "pendiente (falta la duración típica de una vacante)".** The formula (average × 52 ÷ weeks a posting stays up) is written and tested, but `POSTING_LIFETIME_WEEKS` in `lib/gate.ts` is `null` | Owner's decision (option b): no invented number. Setting `{ min, max, source }` there turns the estimate on, with the assumption shown next to it. |
+| No snapshots → "Sin datos todavía", no numbers | As in the prompt. |
+| Snapshots are read on every visit (`connection()`); after saving, the form calls `router.refresh()` | F8 done-when: adding a snapshot updates the page. |
+| The add form is shown only to signed-in reviewers; the API checks reviewer status and inserts **as the reviewer** (RLS from F3: reviewers insert, everyone reads). No migration | Least privilege; the F3 test already covers these rules (#07, #19, #27). |
+| Form rules (zod, shared by form and API): date not in the future (Monterrey) and not before 2025; source 1–200 characters; query 1–500; counts whole numbers 0–100,000; plant ≤ total; notes ≤ 2,000 and optional (`null`/empty → none). **No links:** `http(s)://` or `www.` in source, query or notes is rejected | Security floor 4; "no links to apply"; Bug 3 lesson (the schema accepts its own output). |
+| No edit or delete in the app; mistakes are fixed in the Supabase SQL Editor (said on the form) | Owner's decision. |
+| Landing page footer links to `/gate` ("Conteo de vacantes en Monterrey") | So the professor and visitors can find it. |
+
 ## Known risks
 
 | Risk | Status and mitigation |
@@ -175,4 +189,4 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 
 ## Tomorrow's first move
 
-F7 is done on production (Bug 3 resolved; Bug 4, a cosmetic PDF fix, needs a quick look after the push). Next: F8, the Gate 1 page (`/gate`).
+Finish F8 by hand: add a real snapshot as reviewer and see `/gate` update (`docs/TEST_LOG.md`, F8); confirm Bug 4 in a downloaded PDF. Then the end-of-build work: the full mechanical pass and the persona test from the packet §12, recorded in `docs/TEST_LOG.md`, with the security-floor evidence.

@@ -89,3 +89,62 @@ export const shareBodySchema = z.strictObject({
   ),
   includeAnswers: z.boolean({ error: "Indica si quieres incluir tus respuestas." }),
 });
+
+// Gate 1 snapshot (F8): aggregate numbers only, never links to postings.
+const NO_LINKS = /https?:\/\/|www\./i;
+const noLinks = (text: string) => !NO_LINKS.test(text);
+const LINKS_MESSAGE = "No pegues enlaces: aquí solo van números y el nombre de la fuente.";
+
+export function todayInMonterrey(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(now); // YYYY-MM-DD
+}
+
+const count = (label: string) =>
+  z
+    .number({ error: `Escribe ${label} como número entero.` })
+    .int({ error: `Escribe ${label} como número entero.` })
+    .min(0, { error: `${label[0].toUpperCase()}${label.slice(1)} no puede ser negativo.` })
+    .max(100_000, { error: `Revisa ${label}: es demasiado grande.` });
+
+export const gateSnapshotBodySchema = z
+  .strictObject({
+    snapshotDate: z.iso.date({ error: "Elige la fecha de la foto." }),
+    source: z
+      .string({ error: "Escribe la fuente." })
+      .max(800)
+      .trim()
+      .min(1, { error: "Escribe la fuente." })
+      .max(200, { error: "La fuente tiene máximo 200 caracteres." })
+      .refine(noLinks, { error: LINKS_MESSAGE }),
+    query: z
+      .string({ error: "Escribe la búsqueda que usaste." })
+      .max(2000)
+      .trim()
+      .min(1, { error: "Escribe la búsqueda que usaste." })
+      .max(500, { error: "La búsqueda tiene máximo 500 caracteres." })
+      .refine(noLinks, { error: LINKS_MESSAGE }),
+    totalCount: count("el total de resultados"),
+    plantCsCount: count("el número en planta"),
+    // null / missing / empty / whitespace = no notes (Bug 3 lesson: accept our own output).
+    notes: z.preprocess(
+      (value) => (value === null || value === undefined ? "" : value),
+      z
+        .string({ error: "Escribe las notas como texto." })
+        .max(8000)
+        .trim()
+        .max(2000, { error: "Las notas tienen máximo 2,000 caracteres." })
+        .refine(noLinks, { error: LINKS_MESSAGE })
+        .transform((notes) => (notes === "" ? null : notes)),
+    ),
+  })
+  .superRefine((s, ctx) => {
+    if (s.snapshotDate > todayInMonterrey()) {
+      ctx.addIssue({ code: "custom", path: ["snapshotDate"], message: "La fecha no puede ser futura." });
+    }
+    if (s.snapshotDate < "2025-01-01") {
+      ctx.addIssue({ code: "custom", path: ["snapshotDate"], message: "Revisa la fecha: es demasiado antigua." });
+    }
+    if (s.plantCsCount > s.totalCount) {
+      ctx.addIssue({ code: "custom", path: ["plantCsCount"], message: "El número en planta no puede ser mayor que el total." });
+    }
+  });

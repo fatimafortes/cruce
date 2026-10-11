@@ -27,6 +27,9 @@ export default function Home({ searchParams }: PageProps<"/">) {
         <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
           <Actions searchParams={searchParams} />
         </Suspense>
+        <Link href="/gate" className="mt-auto text-center text-sm text-slate-500 underline">
+          Conteo de vacantes en Monterrey
+        </Link>
       </main>
     </>
   );
