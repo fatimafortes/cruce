@@ -181,6 +181,23 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 | No edit or delete in the app; mistakes are fixed in the Supabase SQL Editor (said on the form) | Owner's decision. |
 | Landing page footer links to `/gate` ("Conteo de vacantes en Monterrey") | So the professor and visitors can find it. |
 
+## Gate 1 findings
+
+### 2026-10-10 — first snapshot: the market looks very small
+
+| | |
+| --- | --- |
+| Source | Computrabajo |
+| Query | servicio al cliente manufactura · Monterrey, N.L. |
+| Total in Monterrey | **7** (the site showed "52 ofertas", but that count included remote jobs nationwide; only 7 were located in Monterrey) |
+| Plant customer-service roles | **0**. None met both criteria (customer service + plant); most were sales, purchasing, billing and field service. 1 doubtful: Billing Specialist (NOV), not counted |
+
+**Counting rule, so later snapshots are comparable:** "Resultados totales" = postings **located in the Monterrey metro** after removing remote and nationwide listings, not the site's headline count. "En planta" = only roles that are both customer service **and** at a plant/manufacturer; doubtful ones are not counted and are mentioned in the notes.
+
+**Finding:** with this query, the Monterrey market for plant customer-service roles looks very small, which **supports the Adversary's Gate 1 concern** (is there enough demand for this crossing to matter?).
+
+**How strong is it:** one source, one query, one week. That's not yet the packet's method (2–3 sources, weekly until the module closes), and a single week can miss postings. Next: add 1–2 more sources (e.g. OCC Mundial, Indeed or LinkedIn) with the same query, and repeat weekly. If it stays near zero, the slice may need a wider corridor (e.g. order entry or customs roles, or more of the Monterrey–Saltillo industrial area) rather than a better tool. That is a packet decision for the owner, not a code change.
+
 ## Known risks
 
 | Risk | Status and mitigation |
