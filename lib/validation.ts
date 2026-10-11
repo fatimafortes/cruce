@@ -75,11 +75,17 @@ export const DISPLAY_NAME_MAX = 60;
 
 export const shareBodySchema = z.strictObject({
   attemptId: z.uuid({ error: "No encontramos esta muestra." }),
-  displayName: z
-    .string()
-    .max(DISPLAY_NAME_MAX * 4)
-    .trim()
-    .refine((name) => charCount(name) <= DISPLAY_NAME_MAX, { error: `Máximo ${DISPLAY_NAME_MAX} caracteres.` })
-    .transform((name) => (name === "" ? null : name)),
-  includeAnswers: z.boolean(),
+  // The form parses with this schema and sends the result, so the server sees
+  // its own output (null for "no name") and must accept it (Bug 3).
+  // null, missing, empty and whitespace all mean "no name".
+  displayName: z.preprocess(
+    (value) => (value === null || value === undefined ? "" : value),
+    z
+      .string({ error: "Escribe el nombre como texto." })
+      .max(DISPLAY_NAME_MAX * 4, { error: `Máximo ${DISPLAY_NAME_MAX} caracteres.` })
+      .trim()
+      .refine((name) => charCount(name) <= DISPLAY_NAME_MAX, { error: `Máximo ${DISPLAY_NAME_MAX} caracteres.` })
+      .transform((name) => (name === "" ? null : name)),
+  ),
+  includeAnswers: z.boolean({ error: "Indica si quieres incluir tus respuestas." }),
 });

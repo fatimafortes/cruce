@@ -239,6 +239,25 @@ The F3 RLS test still passes 36/36 with the new trigger in place. No rows left. 
 
 **Browser bundle:** neither real key present; jsPDF only in a separate 408 KB chunk, loaded on "Descargar PDF".
 
-**Supabase run (owner):** _pending_: migration `20261010230000_cruce_proof_public.sql`, then `cruce_proof_public_test.sql`.
+**Supabase run (owner), 2026-10-10:** migration `20261010230000_cruce_proof_public.sql` → "Success. No rows returned" ✅; `cruce_proof_public_test.sql` → **ALL PASS — 14 of 14** ✅.
 
-**Manual run (owner):** _pending_: create link → open in a private window → works; with and without "Incluir mis respuestas" and a display name; revoke → reload → "Esta prueba ya no se comparte."; PDF on a phone.
+**Manual run (owner):** found Bug 3 (below) on the first try. Retest after the fix: _pending_. Steps: create link → open in a private window → works; with and without "Incluir mis respuestas" and a display name; revoke → reload → "Esta prueba ya no se comparte."; PDF on a phone.
+
+## Bug 3 — share link with an empty display name fails (F7), 2026-10-10
+
+**Found by:** owner's F7 test on https://cruce-wheat.vercel.app/proof. Creating a link with the display name **empty** and "Incluir mis respuestas" **unchecked** (the default case) failed: no link appeared, and the screen showed *"Invalid input: expected string, received null"*.
+
+**Cause:** the share form validates in the browser with `shareBodySchema` and sends the **parsed** result. That schema turns an empty name into `null`, so the browser sent `displayName: null`. The API then parsed the request with the same schema, which only accepted a string as input. The schema didn't accept its own output, and zod's default English message reached the screen. The task 1, task 2 and review forms also send parsed data, but their parsing doesn't change the type, so they weren't affected.
+
+**Why the tests missed it:** they parsed raw form values once and never fed the browser's output into the server's parse.
+
+**Fix (`lib/validation.ts`):** `displayName` now treats `null`, missing, empty and whitespace all as "no name" (stored as `null`). A real name is trimmed and capped at 60. A non-string name and a missing `includeAnswers` now get Spanish messages instead of zod's English default. No database or UI change: the column already allows `null`.
+
+**Regression tests (`lib/request-roundtrip.test.ts`, 12 tests):**
+- the exact client payload `{ attemptId, displayName: null, includeAnswers: false }` → accepted, no name;
+- empty, whitespace, null and missing → no name; a real name kept and trimmed; a non-string name → Spanish message;
+- **every request schema** (share ×2, task 1, task 2, review ×2) survives "browser parse → JSON → server parse" unchanged.
+
+Against the old schema, 5 of these fail (including the exact payload and "share, no name"); with the fix, all pass. Full suite: **117 of 117**.
+
+**Retest (owner):** _pending_ after push.
