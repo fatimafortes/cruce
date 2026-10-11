@@ -23,7 +23,7 @@ describe("proofPdfBlocks", () => {
     expect(all).toContain("DATOS INVENTADOS · PLANTA FICTICIA");
     expect(all).toContain("1. Entregable existe (Sí)");
     expect(all).toContain("3. Explicó el cambio · todavía no (Revisa)");
-    expect(all).toContain("4. Empleador aceptó · ningún empleador se ha comprometido aún (Vacío)");
+    expect(all).toContain("4. Una planta aceptó esta prueba · ninguna planta se ha comprometido aún (Vacío)");
     expect(all).toContain("Sugerencia de IA — no es una decisión");
     expect(all).toContain("no es una calificación");
   });

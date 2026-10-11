@@ -15,7 +15,7 @@ describe("proofStates", () => {
       ["Entregable existe", "done"],
       ["Números consistentes", "done"],
       ["Explicó el cambio · lo decide una persona", "pending"],
-      ["Empleador aceptó · ningún empleador se ha comprometido aún", "empty"],
+      ["Una planta aceptó esta prueba · ninguna planta se ha comprometido aún", "empty"],
     ]);
   });
 
@@ -88,7 +88,7 @@ describe("statesFromSummary (public page, F7)", () => {
       "Entregable existe",
       "Números consistentes",
       "Explicó el cambio",
-      "Empleador aceptó · ningún empleador se ha comprometido aún",
+      "Una planta aceptó esta prueba · ninguna planta se ha comprometido aún",
     ]);
     expect(statesFromSummary({ exists: true, numbersOk: false, explained: null }).map((s) => s.status)).toEqual([
       "done",

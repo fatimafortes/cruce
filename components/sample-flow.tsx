@@ -10,7 +10,7 @@ import { ProofStates } from "@/components/proof-states";
 import { DAILY_LIMIT_MESSAGE } from "@/lib/attempt-limits";
 import type { RuleChecks } from "@/lib/checks";
 import { TASK1, TASK2 } from "@/lib/sample";
-import { proofStates } from "@/lib/states";
+import { proofStates, statesFor } from "@/lib/states";
 import { emailAnswerSchema, followupAnswerSchema } from "@/lib/validation";
 
 export type SampleAttempt = {
@@ -171,7 +171,7 @@ export function SampleFlow({
       )}
 
       <ProofStates
-        states={proofStates(
+        states={statesFor("sample", proofStates(
           attempt
             ? {
                 emailAnswer: attempt.emailAnswer,
@@ -180,7 +180,7 @@ export function SampleFlow({
                 review: attempt.review,
               }
             : null,
-        )}
+        ))}
       />
       <Link href="/proof" className="text-center font-semibold text-blue-700 underline">
         Ver mi prueba

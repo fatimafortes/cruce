@@ -5,12 +5,15 @@ import { Header } from "@/components/header";
 import { InventedBadge } from "@/components/invented-badge";
 import { ProofStates } from "@/components/proof-states";
 import { getPublicProof, proofDateLabel } from "@/lib/proofs";
-import { statesFromSummary } from "@/lib/states";
+import { PUBLIC_PROOF_DESCRIPTION, PUBLIC_PROOF_TITLE } from "@/lib/copy";
+import { statesFor, statesFromSummary } from "@/lib/states";
 
 // A proof the worker chose to share. Not indexed by search engines, and the
 // token isn't sent to other sites as a referrer.
 export const metadata: Metadata = {
-  title: "Prueba de trabajo · Cruce",
+  title: `${PUBLIC_PROOF_TITLE} · Cruce`,
+  // Own description, so link previews don't inherit the site's "del call center…".
+  description: PUBLIC_PROOF_DESCRIPTION,
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };
@@ -46,12 +49,11 @@ async function Body({ params }: Pick<PageProps<"/p/[token]">, "params">) {
     <>
       <InventedBadge />
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-slate-900">
-          {proof.displayName ? `Prueba de trabajo de ${proof.displayName}` : "Prueba de trabajo"}
-        </h1>
+        <h1 className="text-2xl font-bold text-slate-900">{PUBLIC_PROOF_TITLE}</h1>
+        {proof.displayName && <p className="text-slate-800">Compartida por {proof.displayName}</p>}
         <p className="text-slate-600">Muestra del {proofDateLabel(proof.submittedAt)}</p>
       </div>
-      <ProofStates states={statesFromSummary(proof.summary)} title="ESTADOS DE LA PRUEBA" />
+      <ProofStates states={statesFor("public", statesFromSummary(proof.summary))} title="ESTADOS DE LA PRÁCTICA" />
       {proof.answers && (
         <>
           <section className="flex flex-col gap-1">

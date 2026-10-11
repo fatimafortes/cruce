@@ -5,6 +5,7 @@ import { SignInButton } from "@/components/sign-in-button";
 import { SignOutButton } from "@/components/sign-out-button";
 import { getGoogleUser } from "@/lib/auth";
 import { safeNextPath } from "@/lib/auth-rules";
+import { PROJECT_DATA_LINK } from "@/lib/copy";
 
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
@@ -28,7 +29,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
           <Actions searchParams={searchParams} />
         </Suspense>
         <Link href="/gate" className="mt-auto text-center text-sm text-slate-500 underline">
-          Conteo de vacantes en Monterrey
+          {PROJECT_DATA_LINK}
         </Link>
       </main>
     </>

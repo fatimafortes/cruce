@@ -1,4 +1,5 @@
 import { allPassed, type RuleChecks } from "@/lib/checks";
+import { STATE4_LABEL } from "@/lib/copy";
 
 // The four states of the proof, in words, never a number (C1, C3).
 // "done" = reached, "review" = neutral "look again", "pending" = not yet / a person decides,
@@ -52,7 +53,7 @@ export function statesFromSummary(summary: StateSummary): ProofState[] {
       : { key: 1, label: "Entregable · todavía no lo envías", status: "pending" },
     numbers,
     explainedState(summary.explained),
-    { key: 4, label: "Empleador aceptó · ningún empleador se ha comprometido aún", status: "empty" },
+    { key: 4, label: STATE4_LABEL, status: "empty" },
   ];
 }
 
@@ -62,4 +63,15 @@ function explainedState(explained: boolean | null): ProofState {
   if (explained === true) return { key: 3, label: "Explicó el cambio", status: "done" };
   if (explained === false) return { key: 3, label: "Explicó el cambio · todavía no", status: "review" };
   return { key: 3, label: "Explicó el cambio · lo decide una persona", status: "pending" };
+}
+
+// Where the states are shown. State 4 (C5: shown empty, no opportunity claim)
+// stays on the worker's own record (/proof, PDF). It is left out on /sample,
+// where it never changes and read as "my boss will see this", and on the public
+// link, where "nobody has committed" reads as "nobody wants her" (C1).
+// States 1–3 stay separate everywhere (C3).
+export type StatesView = "sample" | "proof" | "public";
+
+export function statesFor(view: StatesView, states: ProofState[]): ProofState[] {
+  return view === "proof" ? states : states.filter((s) => s.key !== 4);
 }

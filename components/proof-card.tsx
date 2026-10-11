@@ -7,6 +7,7 @@ import { ProofStates } from "@/components/proof-states";
 import type { RuleChecks } from "@/lib/checks";
 import { downloadProofPdf } from "@/lib/pdf-render";
 import { proofPdfBlocks, proofPdfFileName } from "@/lib/proof-pdf";
+import { SHARE_SHEET_TITLE } from "@/lib/copy";
 import { proofStates } from "@/lib/states";
 import { charCount, DISPLAY_NAME_MAX, firstMessage, shareBodySchema } from "@/lib/validation";
 
@@ -88,7 +89,7 @@ export function ProofCard({ item, origin }: { item: ProofCardItem; origin: strin
   async function share() {
     if (!url) return;
     try {
-      await navigator.share({ title: "Mi prueba de trabajo · Cruce", url });
+      await navigator.share({ title: SHARE_SHEET_TITLE, url });
     } catch {
       // Cancelled by the worker, or not supported: nothing to do.
     }
@@ -161,7 +162,7 @@ export function ProofCard({ item, origin }: { item: ProofCardItem; origin: strin
         {link && url ? (
           <>
             <p className="text-sm text-slate-600">
-              Quien tenga este enlace verá los cuatro estados y la fecha
+              Quien tenga este enlace verá tres estados (entregable, números, explicación) y la fecha
               {link.displayName ? `, el nombre «${link.displayName}»` : ""}
               {link.includeAnswers ? " y tus dos respuestas" : ""}. Nunca la sugerencia de IA ni la nota de revisión.
             </p>
@@ -223,7 +224,8 @@ export function ProofCard({ item, origin }: { item: ProofCardItem; origin: strin
               </span>
             </label>
             <p className="text-sm text-slate-600">
-              El enlace mostrará los cuatro estados y la fecha{includeAnswers ? ", y tus dos respuestas" : ""}. Nunca la
+              El enlace mostrará tres estados (entregable, números, explicación) y la fecha
+              {includeAnswers ? ", y tus dos respuestas" : ""}. Nunca la
               sugerencia de IA ni la nota de revisión. Puedes revocarlo cuando quieras.
             </p>
             <button

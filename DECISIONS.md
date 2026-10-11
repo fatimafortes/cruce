@@ -181,6 +181,15 @@ Migration: `supabase/migrations/20261010150000_cruce_schema.sql`, applied by han
 | No edit or delete in the app; mistakes are fixed in the Supabase SQL Editor (said on the form) | Owner's decision. |
 | Landing page footer links to `/gate` ("Conteo de vacantes en Monterrey") | So the professor and visitors can find it. |
 
+## 2026-10-11 — Persona-test fix: the employer contradiction
+
+| Decision | Why |
+| --- | --- |
+| State 4 shown only on the worker's own record (`/proof`, PDF), worded **"Una planta aceptó esta prueba · ninguna planta se ha comprometido aún"**; left out of `/sample` and of the public link | Persona test: "empleador" read as her current boss (near-abandon), and on the public link "nobody has committed" read as "nobody wants her" (C1). C5 still holds where it matters, on her proof: state 4 visible, empty, no opportunity claim. C3: states 1–3 stay separate everywhere. Deviates from the mockup's "Empleador aceptó (pendiente)" chip on the sample screen |
+| Public link: neutral title "Práctica de servicio al cliente", name on its own line, its own neutral link-preview description; share sheet "Mi práctica · Cruce" | The link may reach her current employer; the old preview inherited "…del call center a servicio al cliente en planta" |
+| Landing footer link renamed "Datos del proyecto" (still `/gate`) | "Conteo de vacantes" contradicted "No es una vacante" |
+| All of this wording lives in `lib/copy.ts`, guarded by `lib/persona-fix.test.ts` | So it can't drift back |
+
 ## Bugs found, fixed and redeployed
 
 Full records in `docs/TEST_LOG.md`.
@@ -217,4 +226,4 @@ Full records in `docs/TEST_LOG.md`.
 
 ## Tomorrow's first move
 
-Mechanical pass complete: 11/11 (`docs/TEST_LOG.md`). Still open: the RLS evidence query output from Supabase; the persona test (owner, separate chat) and the fix for its worst hesitation. Keep adding weekly Gate 1 snapshots from 1–2 more sources.
+Push the persona fix (Deploy 4) and retest those screens on the phone; paste the RLS evidence query output from Supabase into `docs/TEST_LOG.md` §13. Keep adding weekly Gate 1 snapshots from 1–2 more sources.

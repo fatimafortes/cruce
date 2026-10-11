@@ -349,4 +349,35 @@ Run against the current production version (https://cruce-wheat.vercel.app, all 
 
 ### Persona test (§12)
 
-Run by the owner in a separate synthetic-user chat (Lupita), from phone screenshots, with its own PERSONA PDF as the assignment requires. Result and the fix for the worst hesitation: _pending_.
+Run by the owner in a separate synthetic-user chat (Lupita), from phone screenshots, with its own PERSONA PDF (full log of hesitations) as the assignment requires.
+
+**Worst hesitation, severity HIGH, a near-abandon point: the employer contradiction.** The landing page says "No es una vacante" and "Tu empleador actual nunca se entera", but:
+- On `/sample`, before writing anything, she saw state 4 "Empleador aceptó · ningún empleador se ha comprometido aún" and almost quit: *"¿mi jefe? ¿esto le llega a una empresa?"*
+- On the public link page, the title "Prueba de trabajo" could expose her if it reached her current employer. "Ningún empleador se ha comprometido aún" reads to others as "nobody wants her", so she decided not to share at all.
+- Related: the landing footer link "Conteo de vacantes en Monterrey" contradicts "No es una vacante".
+
+**Fix (the smallest that keeps C3 and C5), commit "fix: worst persona issue":**
+
+| Where | Before | After |
+| --- | --- | --- |
+| `/sample` (during the task) | Four states, including state 4 | **States 1–3 only.** State 4 never changes during the task |
+| State 4 wording (`/proof`, PDF: her own record) | "Empleador aceptó · ningún empleador se ha comprometido aún" | **"Una planta aceptó esta prueba · ninguna planta se ha comprometido aún"**: can't be read as her current boss. Still visible and empty, no opportunity claim (C5) |
+| Public link `/p/…` | Title "Prueba de trabajo [de nombre]", four states | Title **"Práctica de servicio al cliente"**, name on its own line ("Compartida por …"), **states 1–3 only** ("nobody has committed" was reading as "nobody wants her", C1) |
+| Public link preview (WhatsApp etc.) | Inherited the site description "…**del call center** a servicio al cliente en planta" and the title "Prueba de trabajo" | Own neutral title and description: "Práctica de servicio al cliente con datos inventados de una planta ficticia." (found while fixing: the preview would have told her employer exactly what she was doing) |
+| Phone share sheet | "Mi prueba de trabajo · Cruce" | "Mi práctica · Cruce" |
+| Share panel text | "verá los cuatro estados" | "verá tres estados (entregable, números, explicación)" |
+| Landing footer link | "Conteo de vacantes en Monterrey" | **"Datos del proyecto"** |
+
+Unchanged: the four-state logic, the checks, the database, the PDF title (her own copy) and "Tu empleador actual nunca se entera" (the reassurance itself). States 1–3 stay separate everywhere (C3).
+
+**Tests (`lib/persona-fix.test.ts`, 6 new; full suite 142 of 142):**
+- no state label in any case contains "empleador", "vacante", "prueba de trabajo", "call center", "contrat…" or "postul…";
+- state 4 is the plant wording and empty;
+- `/sample` shows states 1–3 and `/proof` all four, for every case;
+- the public link never shows state 4, for every combination;
+- the public title, preview description, share-sheet title and footer link are neutral;
+- the public page, landing, proof card and `/sample` use those texts.
+
+**Local production build:** the public link page has `<title>Práctica de servicio al cliente · Cruce</title>` and its own neutral `<meta name="description">`, with 0 occurrences of "call center", "prueba de trabajo", "empleador" or "vacante" in its HTML; the landing footer link reads "Datos del proyecto".
+
+**Retest (owner):** _pending_ after the push. Same screens on the phone: `/sample` shows 3 states; the public link title and preview are neutral and show 3 states; `/proof` shows the new state 4 wording.
