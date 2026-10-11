@@ -217,4 +217,4 @@ Full records in `docs/TEST_LOG.md`.
 
 ## Tomorrow's first move
 
-Final pass recorded in `docs/TEST_LOG.md`. Still open: tests 2 and 5 once on production (second account); the RLS evidence query in Supabase; the persona test (owner, separate chat) and the fix for its worst hesitation. Keep adding weekly Gate 1 snapshots from 1–2 more sources.
+Mechanical pass complete: 11/11 (`docs/TEST_LOG.md`). Still open: the RLS evidence query output from Supabase; the persona test (owner, separate chat) and the fix for its worst hesitation. Keep adding weekly Gate 1 snapshots from 1–2 more sources.
